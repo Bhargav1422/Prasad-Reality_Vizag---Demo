@@ -48,7 +48,7 @@ st.markdown(
 
       /* Title banner */
       .brand-header {{
-        background: linear-gradient(90deg, {BRAND_PRIMARY} 0%, {BRAND_DARK} 100%);
+        background: linear-gradient(90deg, {{BRAND_PRIMARY}} 0%, {{BRAND_DARK}} 100%);
         color: white;
         padding: 18px 24px;
         border-radius: 16px;
@@ -97,14 +97,14 @@ st.markdown(
 
       /* Brand-colored badges */
       .badge-primary {{
-        background: {BRAND_PRIMARY}; color: white; border: none;
+        background: {{BRAND_PRIMARY}}; color: white; border: none;
       }}
       .badge-accent {{
-        background: {BRAND_ACCENT}; color: white; border: none;
+        background: {{BRAND_ACCENT}}; color: white; border: none;
       }}
 
       .price {{
-        color: {BRAND_PRIMARY}; font-weight: 800; font-size: 22px;
+        color: {{BRAND_PRIMARY}}; font-weight: 800; font-size: 22px;
       }}
       .meta {{
         color: #475569; font-size: 13px; margin-top: 2px;
@@ -118,7 +118,7 @@ st.markdown(
         border: 1px solid #e2e8f0; display: inline-block;
       }}
       .link-btn.primary {{
-        background: {BRAND_PRIMARY}; color: white; border: none;
+        background: {{BRAND_PRIMARY}}; color: white; border: none;
       }}
 
       /* Locality pill for extra visibility */
