@@ -1,4 +1,4 @@
-# streamlit_app.py (Corrected CSS, brand theme, embedded logo, only user listings)
+# streamlit_app.py (Auto logo from repo + contrast fix + only user listings)
 import streamlit as st
 import pandas as pd
 from datetime import datetime
@@ -6,6 +6,7 @@ from urllib.parse import quote_plus
 import pydeck as pdk
 import streamlit.components.v1 as components
 import base64
+import os
 
 st.set_page_config(page_title="Prasad Reality Vizag — Property Showcase", page_icon="🏡", layout="wide")
 
@@ -13,120 +14,55 @@ st.set_page_config(page_title="Prasad Reality Vizag — Property Showcase", page
 BRAND_PRIMARY = "#0E57D3"  # blue
 BRAND_ACCENT  = "#FF5A3D"  # orange
 BRAND_DARK    = "#0A2B6D"  # deep blue
-LIGHT_BG      = "#F7FAFC"  # light bg
+LIGHT_BG      = "#0F172A"  # dark background for contrast (Tailwind slate-900 equivalent)
+TEXT_DARK     = "#0F172A"  # text dark
+TEXT_LIGHT    = "#F8FAFC"  # near-white text
 
-# Embedded logo (if file present next to app)
+# Auto-load logo from local repo file
 logo_src = None
-try:
-    with open('prasad_logo.jpg', 'rb') as f:
-        b64 = base64.b64encode(f.read()).decode('utf-8')
-        logo_src = f'data:image/jpg;base64,{b64}'
-except Exception:
-    logo_src = None
-
-# Allow override via sidebar
-st.sidebar.subheader("Branding")
-logo_file = st.sidebar.file_uploader("Upload logo (PNG/JPG)", type=["png", "jpg", "jpeg"])
-logo_url  = st.sidebar.text_input("Or logo URL", placeholder="https://.../logo.png")
-if logo_file is not None:
-    b64 = base64.b64encode(logo_file.read()).decode('utf-8')
-    logo_src = f"data:image/{logo_file.type.split('/')[-1]};base64,{b64}"
-elif logo_url:
-    logo_src = logo_url.strip()
+for name in ('prasad_logo.png','prasad_logo.jpg','prasad_logo.jpeg'):
+    if os.path.exists(name):
+        with open(name,'rb') as f:
+            b64 = base64.b64encode(f.read()).decode('utf-8')
+        ext = name.split('.')[-1]
+        logo_src = f'data:image/{ext};base64,' + b64
+        break
 
 # CSS (escaped braces for f-string)
 st.markdown(
     f"""
     <style>
-      /* Global container & background */
-      .main .block-container {{
-        padding-top: 1.0rem;
-      }}
-      body {{
-        background-color: {LIGHT_BG};
-      }}
+      body {{ background-color: {{LIGHT_BG}}; }}
+      .main .block-container {{ padding-top: 0.6rem; }}
 
-      /* Title banner */
       .brand-header {{
         background: linear-gradient(90deg, {{BRAND_PRIMARY}} 0%, {{BRAND_DARK}} 100%);
-        color: white;
-        padding: 18px 24px;
-        border-radius: 16px;
-        margin-bottom: 18px;
+        color: {{TEXT_LIGHT}}; padding: 18px 24px; border-radius: 16px; margin-bottom: 18px;
         display: flex; align-items: center; gap: 16px;
       }}
-      .brand-logo {{
-        height: 60px; width: auto; border-radius: 8px;
-        background: rgba(255,255,255,0.12); padding: 6px;
-      }}
-      .brand-header h1 {{
-        margin: 0; font-size: 30px; line-height: 1.2;
-      }}
-      .brand-header p {{
-        margin: 4px 0 0 0; opacity: 0.92; font-size: 13px;
-      }}
+      .brand-logo {{ height: 60px; width: auto; border-radius: 8px; background: rgba(255,255,255,0.12); padding: 6px; }}
+      .brand-header h1 {{ margin: 0; font-size: 30px; line-height: 1.2; }}
+      .brand-header p  {{ margin: 4px 0 0 0; opacity: 0.95; font-size: 13px; }}
 
-      /* Card tweaks for visibility */
-      .property-card {{
-        background: white;
-        border-radius: 18px;
-        box-shadow: 0 10px 20px rgba(0,0,0,0.10);
-        overflow: hidden;
-        margin-bottom: 18px;
-        border: 1px solid #e6edf3;
-        transition: transform 0.15s ease, box-shadow 0.15s ease;
-      }}
-      .property-card:hover {{
-        transform: translateY(-2px);
-        box-shadow: 0 14px 28px rgba(0,0,0,0.12);
-      }}
-      .card-image {{
-        width: 100%; height: 260px; object-fit: cover; display: block;
-      }}
-      .card-body {{
-        padding: 16px 18px;
-      }}
-      .badges {{
-        display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px;
-      }}
-      .badge {{
-        display: inline-block; padding: 6px 10px; border-radius: 999px;
-        font-size: 12px; font-weight: 600; background: #edf2f7; color: #2d3748;
-        border: 1px solid #e2e8f0;
-      }}
+      .property-card {{ background: #FFFFFF; border-radius: 18px; box-shadow: 0 10px 20px rgba(0,0,0,0.18);
+                        overflow: hidden; margin-bottom: 18px; border: 1px solid #e6edf3; transition: transform 0.15s ease, box-shadow 0.15s ease; }}
+      .property-card:hover {{ transform: translateY(-2px); box-shadow: 0 14px 28px rgba(0,0,0,0.22); }}
+      .card-image {{ width: 100%; height: 260px; object-fit: cover; display: block; }}
+      .card-body  {{ padding: 16px 18px; }}
 
-      /* Brand-colored badges */
-      .badge-primary {{
-        background: {{BRAND_PRIMARY}}; color: white; border: none;
-      }}
-      .badge-accent {{
-        background: {{BRAND_ACCENT}}; color: white; border: none;
-      }}
+      .badges {{ display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }}
+      .badge {{ display: inline-block; padding: 6px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: #eef2ff; color: #1e293b; border: 1px solid #e5e7eb; }}
+      .badge-primary {{ background: {{BRAND_PRIMARY}}; color: #FFFFFF; border: none; }}
+      .badge-accent  {{ background: {{BRAND_ACCENT}};  color: #FFFFFF; border: none; }}
 
-      .price {{
-        color: {{BRAND_PRIMARY}}; font-weight: 800; font-size: 22px;
-      }}
-      .meta {{
-        color: #475569; font-size: 13px; margin-top: 2px;
-      }}
-      .cta-row {{
-        display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap;
-      }}
-      .link-btn {{
-        padding: 10px 14px; border-radius: 12px; text-decoration: none;
-        background: #f1f5f9; color: #0f172a; font-weight: 700;
-        border: 1px solid #e2e8f0; display: inline-block;
-      }}
-      .link-btn.primary {{
-        background: {{BRAND_PRIMARY}}; color: white; border: none;
-      }}
+      .price {{ color: {{BRAND_PRIMARY}}; font-weight: 800; font-size: 22px; }}
+      .card-body h3 {{ color: #0F172A; font-weight: 800; }} /* Headline contrast */
+      .meta  {{ color: #334155; font-size: 13px; margin-top: 2px; }}
+      .cta-row {{ display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }}
+      .link-btn {{ padding: 10px 14px; border-radius: 12px; text-decoration: none; background: #f1f5f9; color: #0f172a; font-weight: 700; border: 1px solid #e2e8f0; display: inline-block; }}
+      .link-btn.primary {{ background: {{BRAND_PRIMARY}}; color: #FFFFFF; border: none; }}
 
-      /* Locality pill for extra visibility */
-      .pill {{
-        display:inline-block; padding:4px 8px; border-radius:999px;
-        background:#eef2ff; color:#1e293b; font-weight:700; font-size:12px;
-        border:1px solid #e5e7eb;
-      }}
+      .pill {{ display:inline-block; padding:4px 8px; border-radius:999px; background:#eef2ff; color:#1e293b; font-weight:700; font-size:12px; border:1px solid #e5e7eb; }}
     </style>
     """,
     unsafe_allow_html=True,
@@ -465,7 +401,7 @@ else:
 # Footer
 st.markdown(
     """
-    <div style="margin-top: 20px; color:#475569;">
+    <div style="margin-top: 20px; color:#e2e8f0;">
       <strong>Prototype notes:</strong> Mocked data only, no backend. For production: connect real listings & social leads.
       <br>Contact via WhatsApp India (+91 6309729493) or US (+1 786 420 9015).
     </div>
