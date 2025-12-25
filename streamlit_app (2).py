@@ -190,23 +190,23 @@ with right:
 st.markdown("---")
 st.subheader("Filter Usage Analytics (Prototype)")
     ac = st.session_state.analytics
-    col_a, col_b = st.columns(2)
-    with col_a:
-    st.write("**Localities usage**")
-    st.bar_chart(pd.Series(ac['locality_counts']))
-    st.write("**Property type usage**")
-    st.bar_chart(pd.Series(ac['type_counts']))
-    with col_b:
-    st.write("**Condition usage**")
-    st.bar_chart(pd.Series(ac['condition_counts']))
-    st.write("**Sort choice usage**")
-    st.bar_chart(pd.Series(ac['sort_counts']))
-    if ac['search_terms']:
-    st.write("**Top search keywords**")
-    df_terms = pd.DataFrame(sorted(ac['search_terms'].items(), key=lambda x: x[1], reverse=True), columns=["term","count"])
-    st.dataframe(df_terms, use_container_width=True)
-else:
-        st.caption("No search terms recorded yet.")
+        col_a, col_b = st.columns(2)
+        with col_a:
+        st.write("**Localities usage**")
+        st.bar_chart(pd.Series(ac['locality_counts']))
+        st.write("**Property type usage**")
+        st.bar_chart(pd.Series(ac['type_counts']))
+        with col_b:
+        st.write("**Condition usage**")
+        st.bar_chart(pd.Series(ac['condition_counts']))
+        st.write("**Sort choice usage**")
+        st.bar_chart(pd.Series(ac['sort_counts']))
+        if ac['search_terms']:
+        st.write("**Top search keywords**")
+        df_terms = pd.DataFrame(sorted(ac['search_terms'].items(), key=lambda x: x[1], reverse=True), columns=["term","count"])
+        st.dataframe(df_terms, use_container_width=True)
+    else:
+            st.caption("No search terms recorded yet.")
 
 # Map heatmap
 if show_map and filtered_props:
