@@ -19,9 +19,9 @@ import streamlit.components.v1 as components
 st.set_page_config(page_title="Prasad Reality Vizag — Property Showcase", page_icon="🏡", layout="wide")
 
 BRAND_PRIMARY = "#0A7E8C"  # Teal
-BRAND_ACCENT = "#F5A623"    # Warm accent (orange)
-BRAND_DARK = "#0B2E33"      # Deep teal/dark
-LIGHT_BG = "#F7FAFC"        # Light gray-blue
+BRAND_ACCENT  = "#F5A623"  # Warm accent (orange)
+BRAND_DARK    = "#0B2E33"  # Deep teal/dark
+LIGHT_BG      = "#F7FAFC"  # Light gray-blue
 
 st.markdown(
     f"""
@@ -86,7 +86,7 @@ st.markdown(
         border: 1px solid #e2e8f0;
       }}
       .badge-primary {{ background: {BRAND_PRIMARY}; color: white; border: none; }}
-      .badge-accent {{ background: {BRAND_ACCENT}; color: white; border: none; }}
+      .badge-accent  {{ background: {BRAND_ACCENT};  color: white; border: none; }}
 
       .price {{
         color: {BRAND_PRIMARY};
@@ -286,22 +286,22 @@ if "prev_filters" not in st.session_state:
 # SIDEBAR — Filters & Actions
 # -------------------------------
 st.sidebar.title("Filter Properties")
-localities = sorted({p["locality"] for p in st.session_state.properties})
-conditions = ["New", "Old"]
-prop_types = ["Apartment", "Individual House", "Plot", "Commercial"]
+localities   = sorted({p["locality"] for p in st.session_state.properties})
+conditions   = ["New", "Old"]
+prop_types   = ["Apartment", "Individual House", "Plot", "Commercial"]
 
 selected_localities = st.sidebar.multiselect("Area / Locality", options=localities, default=localities)
-selected_condition = st.sidebar.radio("Property Condition", options=["All"] + conditions, index=0)
-selected_type = st.sidebar.radio("Property Type", options=["All"] + prop_types, index=0)
-search_text = st.sidebar.text_input("Keyword search", placeholder="e.g., sea view, garden, parking, Vastu")
-sort_by = st.sidebar.selectbox(
+selected_condition  = st.sidebar.radio("Property Condition", options=["All"] + conditions, index=0)
+selected_type       = st.sidebar.radio("Property Type", options=["All"] + prop_types, index=0)
+search_text         = st.sidebar.text_input("Keyword search", placeholder="e.g., sea view, garden, parking, Vastu")
+sort_by             = st.sidebar.selectbox(
     "Sort by",
     ["Price (low → high)", "Price (high → low)", "Size (small → large)", "Size (large → small)", "Newest Listings"],
     index=0,
 )
 
 # --- Analytics update (only when filter changes) ---
-prev = st.session_state.prev_filters
+prev    = st.session_state.prev_filters
 loc_set = tuple(sorted(selected_localities))
 if prev["localities"] != loc_set:
     for loc in selected_localities:
@@ -323,7 +323,7 @@ if prev["sort"] != sort_by:
     st.session_state.prev_filters["sort"] = sort_by
 
 st.sidebar.markdown("---")
-show_map = st.sidebar.checkbox("Show heatmap of results", value=True)
+show_map   = st.sidebar.checkbox("Show heatmap of results", value=True)
 admin_mode = st.sidebar.checkbox("Admin demo: add a property", value=False)
 
 # -------------------------------
@@ -361,23 +361,23 @@ filtered_props = apply_filters(st.session_state.properties)
 if admin_mode:
     st.sidebar.subheader("Add a Property (Prototype)")
     with st.sidebar.form("add_prop_form"):
-        new_id = st.text_input("ID", placeholder="e.g., VRV-011")
+        new_id    = st.text_input("ID", placeholder="e.g., VRV-011")
         new_title = st.text_input("Title", placeholder="e.g., Modern 3BHK near beach")
-        new_locality = st.selectbox("Locality", options=localities)
+        new_locality  = st.selectbox("Locality", options=localities)
         new_condition = st.selectbox("Condition", options=conditions)
-        new_type = st.selectbox("Type", options=prop_types)
-        new_price = st.number_input("Price (lakhs)", min_value=0.0, max_value=1000.0, step=1.0, value=95.0)
-        new_size = st.number_input("Size (sqft)", min_value=0, max_value=5000, step=50, value=1350)
-        new_bed = st.number_input("Bedrooms", min_value=0, max_value=10, step=1, value=3)
-        new_bath = st.number_input("Bathrooms", min_value=0, max_value=10, step=1, value=3)
-        new_lat = st.number_input("Latitude", value=17.7440, format="%.6f")
-        new_lon = st.number_input("Longitude", value=83.3350, format="%.6f")
-        new_img = st.text_input("Image URL", value="https://images.unsplash.com/photo-1600585154082-9d410a0fb096?w=1200")
-        new_desc = st.text_area("Short description", value="Bright interiors, well-connected locality.")
-        is_premium = st.checkbox("Premium", value=False)
-        is_new_list = st.checkbox("New Listing", value=True)
-        family_ok = st.checkbox("Best for Families", value=True)
-        submitted = st.form_submit_button("Add to showcase")
+        new_type      = st.selectbox("Type", options=prop_types)
+        new_price     = st.number_input("Price (lakhs)", min_value=0.0, max_value=1000.0, step=1.0, value=95.0)
+        new_size      = st.number_input("Size (sqft)", min_value=0, max_value=5000, step=50, value=1350)
+        new_bed       = st.number_input("Bedrooms", min_value=0, max_value=10, step=1, value=3)
+        new_bath      = st.number_input("Bathrooms", min_value=0, max_value=10, step=1, value=3)
+        new_lat       = st.number_input("Latitude", value=17.7440, format="%.6f")
+        new_lon       = st.number_input("Longitude", value=83.3350, format="%.6f")
+        new_img       = st.text_input("Image URL", value="https://images.unsplash.com/photo-1600585154082-9d410a0fb096?w=1200")
+        new_desc      = st.text_area("Short description", value="Bright interiors, well-connected locality.")
+        is_premium    = st.checkbox("Premium", value=False)
+        is_new_list   = st.checkbox("New Listing", value=True)
+        family_ok     = st.checkbox("Best for Families", value=True)
+        submitted     = st.form_submit_button("Add to showcase")
         if submitted:
             if not new_id or not new_title:
                 st.sidebar.error("Please provide at least an ID and Title.")
@@ -489,9 +489,9 @@ with browse_tab:
             f"Hello Prasad Reality Vizag, I'm interested in {prop['title']} ({prop['id']}) "
             f"in {prop['locality']}. Is it available?"
         )
-        wa_india = "https://wa.me/916309729493?text=" + quote_plus(msg)
-        wa_us = "https://wa.me/17864209015?text=" + quote_plus(msg)
-        insta_profile = "https://www.instagram.com/prasad.reality_vizag/"
+        wa_india     = "https://wa.me/916309729493?text=" + quote_plus(msg)
+        wa_us        = "https://wa.me/17864209015?text=" + quote_plus(msg)
+        insta_profile= "https://www.instagram.com/prasad.reality_vizag/"
         insta_dm_app = "instagram://user?username=prasad.reality_vizag"
 
         st.markdown(
@@ -508,7 +508,7 @@ with browse_tab:
                 <div class="cta-row">
                   {wa_india}WhatsApp (India)</a>
                   {wa_us}WhatsApp (US)</a>
-                  {insta_profile}Instagram</a>
+                  <a class="link-btn"agram</a>
                 </div>
                 <div class="cta-row">
                   {insta_dm_app}Open Instagram DM (App)</a>
@@ -574,7 +574,7 @@ with browse_tab:
         ]
         msg = "Prasad Reality Vizag — My shortlist:\n" + "\n".join(lines)
         wa_india_all = "https://wa.me/916309729493?text=" + quote_plus(msg)
-        wa_us_all = "https://wa.me/17864209015?text=" + quote_plus(msg)
+        wa_us_all    = "https://wa.me/17864209015?text=" + quote_plus(msg)
 
         c_ind, c_us = st.columns(2)
         with c_ind:
@@ -590,14 +590,14 @@ with browse_tab:
     st.markdown("---")
     st.subheader("Lead Capture")
     with st.form("lead_capture_form"):
-        name = st.text_input("Name", placeholder="Your full name")
-        phone = st.text_input("Phone", placeholder="e.g., +91 6309729493")
-        email = st.text_input("Email", placeholder="you@example.com")
+        name     = st.text_input("Name",  placeholder="Your full name")
+        phone    = st.text_input("Phone", placeholder="e.g., +91 6309729493")
+        email    = st.text_input("Email", placeholder="you@example.com")
         pref_loc = st.selectbox("Preferred locality", options=["Any"] + localities)
-        pref_type = st.selectbox("Preferred type", options=["Any"] + prop_types)
-        budget = st.text_input("Budget (Lakhs)", placeholder="e.g., 80–120")
-        notes = st.text_area("Notes", placeholder="Tell us what you’re looking for…")
-        submitted = st.form_submit_button("Submit lead")
+        pref_type= st.selectbox("Preferred type", options=["Any"] + prop_types)
+        budget   = st.text_input("Budget (Lakhs)", placeholder="e.g., 80–120")
+        notes    = st.text_area("Notes", placeholder="Tell us what you’re looking for…")
+        submitted= st.form_submit_button("Submit lead")
         if submitted:
             if not name or not phone:
                 st.warning("Please provide at least your name and phone.")
@@ -612,7 +612,7 @@ with browse_tab:
 
     if st.session_state.leads:
         df_leads = pd.DataFrame(st.session_state.leads)
-        st.dataframe(df_leads, use_container_width=True)
+        st.dataframe(df_leads,        st.dataframe(df_leads, use_container_width=True)
         st.download_button(
             "⬇️ Download leads (CSV)",
             data=df_leads.to_csv(index=False),
@@ -633,7 +633,7 @@ with browse_tab:
         embed_html = f"""
         <blockquote class="instagram-media" data-instgrm-permalink="{insta_url}" data-instgrm-version="14"
                     style="background:#FFF; border:0; margin: 1px; max-width:540px; padding:0; width:100%;"></blockquote>
-               https://www.instagram.com/embed.js</script>
+        https://www.instagram.com/embed.js</script>
         """
         components.html(embed_html, height=600)
     else:
