@@ -189,7 +189,7 @@ with right:
 # Analytics dashboard
 st.markdown("---")
 st.subheader("Filter Usage Analytics (Prototype)")
-    ac = st.session_state.analytics
+      ac = st.session_state.analytics
         col_a, col_b = st.columns(2)
         with col_a:
         st.write("**Localities usage**")
