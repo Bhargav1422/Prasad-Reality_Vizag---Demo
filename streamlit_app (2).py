@@ -1,5 +1,4 @@
-
-# streamlit_app.py (Enhanced + Authentic Instagram listings, NO analytics tab)
+# streamlit_app.py (Patched: HTML anchors fixed, no analytics tab)
 # -------------------------------------------------------------
 # Run:
 #   pip install -r requirements.txt
@@ -198,14 +197,14 @@ BASE_PROPERTIES = [
         "family_friendly": True
     },
 
-    # Instagram-based authentic entries from your captions
+    # Instagram-based authentic entries
     {
         "id": "VRV-007",
         "title": "2BHK Flat — Sai Santhoshi Residence (2nd Floor)",
         "locality": "Chinnamushidiwada",
         "condition": "New",
         "property_type": "Apartment",
-        "price_lakhs": 0.0,  # price unknown — hidden in UI
+        "price_lakhs": 0.0,
         "size_sqft": 850,
         "bed": 2,
         "bath": 2,
@@ -222,8 +221,8 @@ BASE_PROPERTIES = [
         "locality": "Maddilapalem",
         "condition": "New",
         "property_type": "Commercial",
-        "price_lakhs": 0.0,  # price unknown — hidden in UI
-        "size_sqft": 10800,  # 1200 sq. yards × 9 sqft/yard
+        "price_lakhs": 0.0,
+        "size_sqft": 10800,
         "bed": 0, "bath": 0,
         "lat": 17.7365, "lon": 83.3219,
         "img": "https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=1200",
@@ -237,7 +236,7 @@ BASE_PROPERTIES = [
         "locality": "Seethammadhara",
         "condition": "New",
         "property_type": "Apartment",
-        "price_lakhs": 205.0,  # computed
+        "price_lakhs": 205.0,
         "size_sqft": 2050,
         "bed": 3, "bath": 3,
         "lat": 17.7449, "lon": 83.3120,
@@ -252,8 +251,8 @@ BASE_PROPERTIES = [
         "locality": "Bheemili",
         "condition": "New",
         "property_type": "Plot",
-        "price_lakhs": 113.4,  # computed
-        "size_sqft": 5103,     # 567 × 9 sqft
+        "price_lakhs": 113.4,
+        "size_sqft": 5103,
         "bed": 0, "bath": 0,
         "lat": 17.9050, "lon": 83.4520,
         "img": "https://images.unsplash.com/photo-1523419409543-a4c7457fb928?w=1200",
@@ -402,13 +401,14 @@ if show_map and filtered_props:
 # -------------------------------
 # PROPERTY GRID
 # -------------------------------
+
 def render_property_card(prop):
     # Price display (only if available); add ₹/sft for flats/houses
     price_val = prop.get("price_lakhs")
     price_html = ""
     if price_val and price_val > 0:
         price_html = f"₹{price_val:.1f} Lakhs"
-        if prop.get("size_sqft") and prop.get("property_type") in ("Apartment", "Individual House") and price_val > 0:
+        if prop.get("size_sqft") and prop.get("property_type") in ("Apartment", "Individual House"):
             ppsf = (price_val * 100000) / float(prop["size_sqft"])
             price_html += f" · ₹{ppsf:,.0f}/sft"
 
@@ -417,32 +417,35 @@ def render_property_card(prop):
         for t in prop.get("tags", [])
     ])
 
-    # Contact links
+    # Contact links — ensure fully formed anchor tags (href, quotes, closing tags)
     msg = (
         f"Hello Prasad Reality Vizag, I'm interested in {prop['title']} ({prop['id']}) "
         f"in {prop['locality']}. Is it available?"
     )
-    wa_india     = "https://wa.me/916309729493?text=" + quote_plus(msg)
-    wa_us        = "https://wa.me/17864209015?text=" + quote_plus(msg)
-    insta_profile= "https://www.instagram.com/prasad.reality_vizag/"
-    insta_dm_app = "instagram://user?username=prasad.reality_vizag"
+    wa_india      = "https://wa.me/916309729493?text=" + quote_plus(msg)
+    wa_us         = "https://wa.me/17864209015?text=" + quote_plus(msg)
+    insta_profile = "https://www.instagram.com/prasad.reality_vizag/"
+    insta_dm_app  = "instagram://user?username=prasad.reality_vizag"  # mobile deep link
 
+    # Card HTML with proper <a> tags
     st.markdown(
         f"""
         <div class="property-card">
-          <img class="card-image" src="{prop['img']}" alt="property image="badges">{badges_html}</div>
+          <img class="card-image" src="{prop['img']}" alt="property image">
+          <div class="card-body">
+            <div class="badges">{badges_html}</div>
             <div class="price">{price_html}</div>
             <h3 style="margin: 6px 0 2px 0;">{prop['title']}</h3>
             <div class="meta">{prop['locality']} • {prop['condition']} • {prop['property_type']}</div>
             <div class="meta">{prop['bed']} Bed · {prop['bath']} Bath · {prop['size_sqft']} sqft</div>
             <p style="margin-top: 10px; color:#334155;">{prop['desc']}</p>
             <div class="cta-row">
-              {wa_india}WhatsApp (India)</a>
-              {wa_us}WhatsApp (US)</a>
-              {insta_profile}Instagram</a>
+              <a class="link-btn primary" href="{wa_india}" target="_blank">WhatsApp (India)</a>
+              <a class="link-btn" href="{wa_us}" target="_blank">WhatsApp (US)</a>
+              <a class="link-btn" href="{insta_profile}" target="_blank">Instagram</a>
             </div>
             <div class="cta-row">
-              {insta_dm_app}Open Instagram DM (App)</a>
+              <a class="link-btn" href="{insta_dm_app}">Open Instagram DM (App)</a>
             </div>
           </div>
         </div>
@@ -450,7 +453,8 @@ def render_property_card(prop):
         unsafe_allow_html=True,
     )
 
-    c1, c2, c3 = st.columns([1, 1, 2])
+    # Streamlit buttons row
+    c1, c2 = st.columns([1, 1])
     with c1:
         if st.button(f"➕ Shortlist {prop['id']}", key=f"sl_{prop['id']}"):
             if prop not in st.session_state.shortlist:
@@ -496,7 +500,7 @@ if st.session_state.shortlist:
         mime="text/csv",
     )
 
-    # WhatsApp export of shortlist (India/US)
+    # WhatsApp export of shortlist
     lines = [
         f"{p['id']} | {p['title']} | {p['locality']} | "
         f"{('₹' + str(int(p['price_lakhs'])) + ' Lakhs') if p.get('price_lakhs', 0) else 'Price on request'} | "
@@ -562,22 +566,23 @@ st.caption("Paste a public Instagram post URL to embed it below (Reels/Posts).")
 insta_url = st.text_input("Instagram post URL", placeholder="https://www.instagram.com/p/<post_id>/")
 if insta_url:
     embed_html = f"""
-    <blockquote class="instagram-media" data-instgrm-permalink="{insta_url}" data-instgrm-version="14"
-                style="background:#FFF; border:0; margin: 1px; max-width:540px; padding:0; width:100%;"></blockquote>
-    https://www.instagram.com/embed.js</script>
+    <blockquote class=\"instagram-media\" data-instgrm-permalink=\"{insta_url}\" data-instgrm-version=\"14\"
+                style=\"background:#FFF; border:0; margin: 1px; max-width:540px; padding:0; width:100%;\"></blockquote>
+    <script async src=\"https://www.instagram.com/embed.js\"></script>
     """
     components.html(embed_html, height=600)
 else:
     st.link_button("Open Instagram Profile", "https://www.instagram.com/prasad.reality_vizag/")
 
 # -------------------------------
-## FOOTER — Helpful notes
+# FOOTER — Helpful notes
 # -------------------------------
 st.markdown(
-    f"""
+    """
     <div style="margin-top: 20px; color:#475569;">
       <strong>Prototype notes:</strong> Mocked data only, no backend. For production: connect real listings & social leads.
       <br>Contact via WhatsApp India (+91 6309729493) or US (+1 786 420 9015).
     </div>
     """,
-    unsafe_allow_html=True,)
+    unsafe_allow_html=True,
+)
