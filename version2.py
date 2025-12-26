@@ -392,7 +392,7 @@ def render_property_card(prop: dict):
     
     cta_html = f"""
     <div class="cta-row">
-      <a class="link-btn primary" href="{wa_indiatsApp (US)</a>
+      <a class="link-btn primary" href="{wa_india}</a>
       {insta_profile}Instagram</a>
     </div>
     """
