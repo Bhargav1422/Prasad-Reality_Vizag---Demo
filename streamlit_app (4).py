@@ -75,7 +75,7 @@ if logo_src:
         <div class="brand-header">
           <img class="brand-logo" src="{logo_src}" alt="brand logo">
           <div>
-            <h1>🏡 Prasad Reality Vizag</h1>
+            <h1>Prasad Reality Vizag</h1>
             <p>Digital showcase for homes in Visakhapatnam — browse, filter, and shortlist in seconds.</p>
           </div>
         </div>
@@ -339,11 +339,11 @@ if st.session_state.shortlist:
     ]
     msg = "Prasad Reality Vizag — My shortlist:\n" + "\n".join(lines)
     wa_india_all = "https://wa.me/916309729493?text=" + quote_plus(msg)
-    wa_us_all    = "https://wa.me/17864209015?text=" + quote_plus(msg)
+    ## wa_us_all    = "https://wa.me/17864209015?text=" + quote_plus(msg)
 
     c_ind, c_us = st.columns(2)
     with c_ind:
-        st.link_button("Send shortlist via WhatsApp (India)", wa_india_all)
+        st.link_button("Send shortlist via WhatsApp", wa_india_all)
     with c_us:
         st.link_button("Send shortlist via WhatsApp (US)", wa_us_all)
 else:
