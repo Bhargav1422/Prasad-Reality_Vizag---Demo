@@ -383,31 +383,35 @@ def render_property_card(prop: dict):
     badges_html = "".join([f'<span class="badge {"badge-primary" if t in ["New Listing","Premium"] else ""}">{t}</span>' for t in tags])
     locality_pill = f'<span class="pill">{locality}</span>'
 
-    msg = f"Hello Prasad Reality Vizag, I'm interested in {title} ({pid}) in {locality}. Is it available?"
-    wa_india = whatsapp_link(WA_INDIA_NUM, msg)
-    wa_us    = whatsapp_link(WA_US_NUM, msg)
-    insta_profile = f"https://www.instagram.com/{IG_HANDLE}/"
 
-    # Card HTML
+# Build CTA links
+    msg = f"Hello Prasad Reality Vizag, I'm interested in {title} ({pid}) in {locality}. Is it available?"
+    wa_india      = whatsapp_link(WA_INDIA_NUM, msg)
+    wa_us         = whatsapp_link(WA_US_NUM, msg)
+    insta_profile = f"https://www.instagram.com/{IG_HANDLE}/"  # note: trailing "/" only
+    
+    cta_html = f"""
+    <div class="cta-row">
+      <a class="link-btn primary" href="{wa_indiatsApp (US)</a>
+      {insta_profile}Instagram</a>
+    </div>
+    """
+    
+    # Render CTA with the rest of the card
     st.markdown(
         f"""
         <div class="property-card">
           <img class="card-image" src="{img}" alt="Photo of {title}" loading="lazy"
-               onerror="this.srcs_html}}</div>
-            <div class="price">{price_text}</div>
+               onerror="this.src='https://images.unsplash.com/photo-150118363</div>
             <h3 style="margin: 6px 0 2px 0;">{title}</h3>
             <div class="meta">{cond} • {ptype}</div>
-            <div class="meta">{bed} Bed · {bath} Bath · {size} sqft</div>
-            <div class="cta-row">
-              {wa_india}WhatsApp (India)</a>
-              {wa_us}WhatsApp (US)</a>
-              {insta_profile}Instagram</a>
-            </div>
+            <div class="meta">{        <div class="meta">{bed} Bed · {bath} Bath · {size} sqft</div>
+            {cta_html}
           </div>
         </div>
         """,
         unsafe_allow_html=True,
-    )
+
 
     # Lazy embed of Reel (optional)
     if ENABLE_INSTAGRAM and reel_url and reel_url.startswith("https://www.instagram.com/reel/"):
