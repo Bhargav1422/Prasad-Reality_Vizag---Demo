@@ -433,7 +433,8 @@ def render_property_card(prop: dict):
         if ENABLE_BOOKING and st.button(f"📅 Book a slot ({pid})", key=f"bk_{pid}"):
             st.session_state["booking_target"] = prop
             st.session_state["show_booking_modal"] = True
-            st.experimental_rerun()
+    # No manual rerun needed — Streamlit reruns automatically after button click
+
 
     if ENABLE_PER_CARD_DOWNLOAD := False:
         with c3:
