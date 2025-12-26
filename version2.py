@@ -491,4 +491,4 @@ if ENABLE_INSTAGRAM:
 st.divider()
 st.caption("Demo notes: Mocked data only; CSV persistence for leads & bookings; no backend.")
 st.caption("Contact via WhatsApp India (+91 6309729493) or US (+1 786 420 9015).")
-``
+
