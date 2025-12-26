@@ -312,7 +312,7 @@ def render_property_card(prop: dict):
         <div class="price">{price_text}</div>
         <h3 style="margin: 6px 0 2px 0;">{title}</h3>
         <div class="meta">{cond} . {ptype}</div>
-        <div class="meta">{bed} Bed · {bath} Bath · {size} sqft</div>
+        <div class="meta">{bed} Bed . {bath} Bath . {size} sqft</div>
         {cta_html}
       </div>
     </div>
