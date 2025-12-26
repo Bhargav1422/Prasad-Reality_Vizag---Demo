@@ -2,3 +2,5 @@ streamlit
 pandas
 pydeck
 pillow
+gspread
+google-auth
