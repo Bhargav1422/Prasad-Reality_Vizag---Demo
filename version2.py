@@ -22,7 +22,7 @@ st.set_page_config(
         "secondaryBackgroundColor": "#1E293B", # cards/sidebar
         "textColor": "#F8FAFC",                # near-white text
         "font": "sans serif",
-    },
+    }
 )
 
 # -----------------------------
