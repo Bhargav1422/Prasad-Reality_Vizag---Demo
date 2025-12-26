@@ -1,5 +1,5 @@
 
-# streamlit_app.py — Components-only UI, brand-themed with your logo
+# streamlit_app.py — Components-only demo (filters, cards, WhatsApp CTAs, booking, leads, Reels)
 import os
 from datetime import datetime, timedelta, date, time
 from urllib.parse import quote_plus
@@ -10,55 +10,31 @@ import pydeck as pdk
 from streamlit.components.v1 import html as st_html
 
 # -----------------------------
-# Brand Theme (components-only)
+# App setup
 # -----------------------------
-st.set_page_config(
-    page_title="Prasad Realty Vizag",
-    page_icon="🏡",
-    layout="wide",
-    theme={
-        "primaryColor": "#0E57D3",             # brand blue
-        "backgroundColor": "#0F172A",          # dark background
-        "secondaryBackgroundColor": "#1E293B", # cards/sidebar
-        "textColor": "#F8FAFC",                # near-white text
-        "font": "sans serif",
-    }
-)
+st.set_page_config(page_title="Prasad Reality Vizag — Demo Showcase", page_icon="🏡", layout="wide")
 
 # -----------------------------
 # Feature toggles
 # -----------------------------
 ENABLE_HEATMAP   = True
-ENABLE_INSTAGRAM = True      # official embed snippet via components.html
+ENABLE_INSTAGRAM = True     # per-listing "Watch Reel" embed via components.html
 ENABLE_BOOKING   = True
 ENABLE_LEADS     = True
 ENABLE_SHORTLIST = True
-
-DATA_DIR       = "."
-LEADS_FILE     = os.path.join(DATA_DIR, "leads.csv")
-BOOKINGS_FILE  = os.path.join(DATA_DIR, "bookings.csv")
+DATA_DIR         = "."
+LEADS_FILE       = os.path.join(DATA_DIR, "leads.csv")
+BOOKINGS_FILE    = os.path.join(DATA_DIR, "bookings.csv")
 
 # -----------------------------
-# Contact constants
+# Branding / CTAs
 # -----------------------------
 WA_INDIA_NUM = "916309729493"
 WA_US_NUM    = "17864209015"
 IG_HANDLE    = "prasad.reality_vizag"
 
 # -----------------------------
-# Logo loader (components-only)
-# -----------------------------
-def load_logo_path():
-    for name in ("prasad_logo.jpg", "prasad_logo.png", "prasad_logo.jpeg"):
-        path = os.path.join(DATA_DIR, name)
-        if os.path.exists(path):
-            return path
-    return None
-
-logo_path = load_logo_path()
-
-# -----------------------------
-# Mock data (replace later with CSVs)
+# Mock data
 # -----------------------------
 mock_properties = [
     {
@@ -148,6 +124,7 @@ def append_row_csv(file_path, row_dict, columns):
     df.to_csv(file_path, index=False)
 
 def generate_ics(summary, description, start_dt, end_dt, location, organizer_email="info@prasadrealityvizag.demo"):
+    """Create a simple ICS invite using IST→UTC conversion."""
     ist_offset = timedelta(hours=5, minutes=30)
     start_utc  = start_dt - ist_offset
     end_utc    = end_dt - ist_offset
@@ -166,7 +143,7 @@ DTEND:{fmt(end_utc)}
 SUMMARY:{summary}
 DESCRIPTION:{description}
 LOCATION:{location}
-ORGANIZER;CN=Prasad Realty Vizag:MAILTO:{organizer_email}
+ORGANIZER;CN=Prasad Reality Vizag:MAILTO:{organizer_email}
 END:VEVENT
 END:VCALENDAR
 """
@@ -178,28 +155,26 @@ def assign_agent(locality):
     return st.session_state.agents[0]
 
 # -----------------------------
-# Header (logo + quick actions)
+# Header / Quick actions
 # -----------------------------
-col_header = st.columns([1, 3, 2])
-with col_header[0]:
-    if logo_path:
-        st.image(logo_path, caption=None, use_column_width=True)
-    else:
-        st.write("🏡")
+st.title("Prasad Reality Vizag — Demo Showcase")
+st.caption("Browse, filter, and shortlist properties. Watch reels, enquire on WhatsApp, capture leads, and book flexible visit slots.")
 
-with col_header[1]:
-    st.title("Prasad Realty Vizag — Demo Showcase")
-    st.caption("Browse, filter, shortlist, watch reels, enquire on WhatsApp, capture leads, and book flexible visit slots.")
-
-with col_header[2]:
-    wa_hi_india = whatsapp_link(WA_INDIA_NUM, "Hi, I'm browsing the Vizag listings!")
-    st.link_button("WhatsApp (India)", wa_hi_india, type="primary")
+wa_hi_india = whatsapp_link(WA_INDIA_NUM, "Hi, I'm browsing the Vizag listings!")
+col_actions = st.columns([1,1,1,3])
+with col_actions[0]:
+    st.metric("Total properties", f"{len(st.session_state.properties)}")
+with col_actions[1]:
+    st.metric("Shortlist", f"{len(st.session_state.shortlist)}")
+with col_actions[2]:
     st.link_button("Instagram", f"https://www.instagram.com/{IG_HANDLE}/")
+with col_actions[3]:
+    st.link_button("WhatsApp (India)", wa_hi_india, type="primary")
 
 st.divider()
 
 # -----------------------------
-# Sidebar filters (theme colors apply automatically)
+# Sidebar filters
 # -----------------------------
 st.sidebar.header("Filter Properties")
 df_all = pd.DataFrame(st.session_state.properties)
@@ -216,7 +191,6 @@ sort_by             = st.sidebar.selectbox(
     ["Price (low → high)", "Price (high → low)", "Size (small → large)", "Size (large → small)", "Newest Listings"],
     index=0,
 )
-
 st.sidebar.divider()
 show_map = st.sidebar.checkbox("Show heatmap of results", value=ENABLE_HEATMAP)
 
@@ -242,13 +216,14 @@ def apply_filters(data):
     elif sort_by == "Size (large → small)":
         df = df.sort_values(by="size_sqft", ascending=False)
     elif sort_by == "Newest Listings":
-        df = df.sort_values(by="condition", ascending=False)  # demo heuristic
+        # demo heuristic
+        df = df.sort_values(by="condition", ascending=False)
     return df.to_dict(orient="records")
 
 filtered_props = apply_filters(st.session_state.properties)
 
 # -----------------------------
-# Stats row
+# Header stats
 # -----------------------------
 left, right = st.columns([3, 2])
 with left:
@@ -260,7 +235,7 @@ with right:
     st.metric("Premium-tagged", f"{total_premium}")
 
 # -----------------------------
-# Map heatmap (optional)
+# Heatmap (optional)
 # -----------------------------
 if show_map and filtered_props:
     df_map = pd.DataFrame(filtered_props)[["lat","lon","price_lakhs","size_sqft"]].rename(columns={"lat":"latitude","lon":"longitude"})
@@ -292,11 +267,15 @@ def render_property_card(prop: dict):
     st.caption(f"{locality} • {cond} • {ptype}" + (f" • {tag_line}" if tag_line else ""))
 
     col_specs = st.columns(3)
-    with col_specs[0]: st.write(f"**Price:** {price_text}")
-    with col_specs[1]: st.write(f"**Specs:** {bed} Bed · {bath} Bath")
-    with col_specs[2]: st.write(f"**Size:** {size} sqft")
+    with col_specs[0]:
+        st.write(f"**Price:** {price_text}")
+    with col_specs[1]:
+        st.write(f"**Specs:** {bed} Bed · {bath} Bath")
+    with col_specs[2]:
+        st.write(f"**Size:** {size} sqft")
 
-    msg = f"Hello Prasad Realty Vizag, I'm interested in {title} ({pid}) in {locality}. Is it available?"
+    # Build WhatsApp & Instagram CTAs
+    msg = f"Hello Prasad Reality Vizag, I'm interested in {title} ({pid}) in {locality}. Is it available?"
     wa_india = whatsapp_link(WA_INDIA_NUM, msg)
     wa_us    = whatsapp_link(WA_US_NUM, msg)
     col_cta = st.columns(3)
@@ -307,6 +286,7 @@ def render_property_card(prop: dict):
     with st.expander("📄 Show more details"):
         st.write(desc)
 
+    # Reels (optional)
     if ENABLE_INSTAGRAM and reel_url and reel_url.startswith("https://www.instagram.com/reel/"):
         with st.expander("🎬 Watch Reel"):
             embed_html = f"""
@@ -316,6 +296,7 @@ def render_property_card(prop: dict):
             """
             st_html(embed_html, height=620)
 
+    # Actions
     col_actions = st.columns(3)
     with col_actions[0]:
         if ENABLE_SHORTLIST and st.button(f"➕ Shortlist {pid}", key=f"sl_{pid}"):
@@ -329,14 +310,16 @@ def render_property_card(prop: dict):
             st.session_state["booking_target"]     = prop
             st.session_state["show_booking_modal"] = True
 
+# -----------------------------
 # Render grid of properties
+# -----------------------------
 cols = st.columns(3)
 for i, prop in enumerate(filtered_props):
     with cols[i % 3]:
         render_property_card(prop)
 
 # -----------------------------
-# Shortlist
+# Shortlist drawer (simple column)
 # -----------------------------
 st.divider()
 st.subheader("⭐ Shortlist")
@@ -347,9 +330,10 @@ if st.session_state.shortlist:
     df_short = pd.DataFrame(st.session_state.shortlist)
     st.download_button("⬇️ Download shortlist (CSV)", df_short.to_csv(index=False),
                        file_name=f"shortlist_{datetime.now().strftime('%Y%m%d_%H%M')}.csv", mime="text/csv")
+    # share via WhatsApp
     lines = [f"{p.get('id','')} | {p.get('title','')} | {p.get('locality','')} | {format_price_lakhs(p.get('price_lakhs', 0))} | {p.get('size_sqft', 0)} sqft"
              for p in st.session_state.shortlist]
-    msg_all = "Prasad Realty Vizag — My shortlist:\n" + "\n".join(lines)
+    msg_all = "Prasad Reality Vizag — My shortlist:\n" + "\n".join(lines)
     col_share = st.columns(2)
     with col_share[0]: st.link_button("Share shortlist (India)", whatsapp_link(WA_INDIA_NUM, msg_all), type="primary")
     with col_share[1]: st.link_button("Share shortlist (US)",    whatsapp_link(WA_US_NUM,    msg_all))
@@ -371,6 +355,7 @@ if ENABLE_BOOKING and st.session_state.get("show_booking_modal"):
             default_dur  = 45 if visit_type == "In-person visit" else 30
             duration_min = st.number_input("Duration (minutes)", min_value=15, max_value=180, value=default_dur, step=15)
             notes        = st.text_area("Notes", placeholder="Any preferences or questions...")
+            # lead basics (not orphan)
             name  = st.text_input("Your Name *")
             phone = st.text_input("Phone (WhatsApp preferred) *")
             email = st.text_input("Email (optional)")
@@ -383,6 +368,7 @@ if ENABLE_BOOKING and st.session_state.get("show_booking_modal"):
                     end_dt_ist   = start_dt_ist + timedelta(minutes=int(duration_min))
                     agent        = assign_agent(prop.get("locality",""))
                     booking_id   = f"BK-{int(datetime.now().timestamp())}"
+                    # persist
                     row = {
                         "booking_id": booking_id,
                         "lead_name": name.strip(), "lead_phone": phone.strip(),
@@ -399,11 +385,13 @@ if ENABLE_BOOKING and st.session_state.get("show_booking_modal"):
                     ])
                     st.session_state.bookings.append(row)
 
+                    # ICS
                     summary = f"Property Visit: {prop.get('id')} — {prop.get('title')}"
                     desc    = f"Agent: {agent['name']} ({agent['phone']})\nNotes: {notes}"
                     ics     = generate_ics(summary, desc, start_dt_ist, end_dt_ist, prop.get("locality","Vizag"))
                     st.download_button("⬇️ Add to calendar (ICS)", data=ics, file_name=f"{booking_id}.ics", mime="text/calendar")
 
+                    # WhatsApp confirms
                     customer_msg = (
                         f"Booking Confirmed: {prop.get('id')} — {prop.get('title')}\n"
                         f"Type: {visit_type}\nWhen (IST): {row['start_dt_ist']} to {row['end_dt_ist']}\n"
@@ -415,11 +403,12 @@ if ENABLE_BOOKING and st.session_state.get("show_booking_modal"):
                     with col_notify[0]: st.link_button("Notify via WhatsApp (India)", wa_customer, type="primary")
                     with col_notify[1]: st.link_button("Notify agent (India)", wa_agent)
 
+                    # close modal flags
                     st.session_state["show_booking_modal"] = False
                     st.session_state["booking_target"]     = None
 
 # -----------------------------
-# Lead capture
+# Lead capture (simple components)
 # -----------------------------
 if ENABLE_LEADS:
     st.divider()
@@ -468,7 +457,7 @@ if ENABLE_LEADS:
         st.info("No leads yet. Use the form above to capture inquiries.")
 
 # -----------------------------
-# Instagram (official embed via components.html)
+# Instagram section (simple)
 # -----------------------------
 if ENABLE_INSTAGRAM:
     st.divider()
@@ -488,7 +477,5 @@ if ENABLE_INSTAGRAM:
 # -----------------------------
 # Footer
 # -----------------------------
-st.divider()
+stst.divider()
 st.caption("Demo notes: Mocked data only; CSV persistence for leads & bookings; no backend.")
-st.caption("Contact via WhatsApp India (+91 6309729493) or US (+1 786 420 9015).")
-
