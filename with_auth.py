@@ -1,22 +1,20 @@
 
-# streamlit_app.py — Demo auth + Property showcase
+# streamlit_app.py — Public showcase, premium UI, no login
 import os
 import base64
 from datetime import datetime
 from urllib.parse import quote_plus
-import hashlib
-
 import pandas as pd
 import streamlit as st
-import pydeck as pdk  # used if ENABLE_HEATMAP = True
+import pydeck as pdk
 
 # -----------------------------
-# Config toggles (enable as needed)
+# Feature toggles
 # -----------------------------
 ENABLE_HEATMAP   = True
-ENABLE_LEADS     = False
-ENABLE_INSTAGRAM = False
-ENABLE_PER_CARD_DOWNLOAD = False  # keep shortlist CSV only
+ENABLE_LEADS     = False          # off by default
+ENABLE_INSTAGRAM = False          # off by default
+ENABLE_PER_CARD_DOWNLOAD = False  # off by default
 
 # -----------------------------
 # App setup
@@ -24,153 +22,15 @@ ENABLE_PER_CARD_DOWNLOAD = False  # keep shortlist CSV only
 st.set_page_config(page_title="Prasad Reality Vizag — Property Showcase", page_icon="🏡", layout="wide")
 
 # -----------------------------
-# ===== AUTH: Helpers & Storage =====
+# Brand & contact constants
 # -----------------------------
-USERS_FILE = "users.csv"
-
-def _ensure_users_file():
-    if not os.path.exists(USERS_FILE):
-        pd.DataFrame(columns=["email", "name", "phone", "password_hash", "created_at"]).to_csv(USERS_FILE, index=False)
-
-def _load_users() -> pd.DataFrame:
-    _ensure_users_file()
-    try:
-        df = pd.read_csv(USERS_FILE)
-    except Exception:
-        # corrupt or unreadable—reset file
-        df = pd.DataFrame(columns=["email", "name", "phone", "password_hash", "created_at"])
-        df.to_csv(USERS_FILE, index=False)
-    return df
-
-def _save_users(df: pd.DataFrame):
-    df.to_csv(USERS_FILE, index=False)
-
-def _hash_pwd(pwd: str) -> str:
-    # Demo-grade: SHA-256 without salt
-    return hashlib.sha256(pwd.encode("utf-8")).hexdigest()
-
-def register_user(name: str, email: str, phone: str, password: str) -> tuple[bool, str]:
-    email = email.strip().lower()
-    df = _load_users()
-    if not name or not email or not password:
-        return False, "Name, Email, and Password are required."
-    if df["email"].eq(email).any():
-        return False, "Email already registered. Try logging in."
-    new_row = {
-        "email": email,
-        "name": name.strip(),
-        "phone": phone.strip(),
-        "password_hash": _hash_pwd(password),
-        "created_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
-    }
-    df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
-    _save_users(df)
-    return True, "Account created successfully. You can log in now."
-
-def authenticate(email: str, password: str) -> tuple[bool, dict | None, str]:
-    email = email.strip().lower()
-    df = _load_users()
-    row = df[df["email"] == email]
-    if row.empty:
-        return False, None, "No account found for this email."
-    valid = row.iloc[0]["password_hash"] == _hash_pwd(password)
-    if not valid:
-        return False, None, "Incorrect password."
-    user = {
-        "email": row.iloc[0]["email"],
-        "name": row.iloc[0]["name"],
-        "phone": row.iloc[0]["phone"],
-        "created_at": row.iloc[0]["created_at"],
-    }
-    return True, user, "Login successful."
-
-def require_auth() -> bool:
-    """Return True if authenticated, else render the auth screens and return False."""
-    if "auth" not in st.session_state:
-        st.session_state.auth = {"is_authenticated": False, "user": None}
-    if st.session_state.auth.get("is_authenticated"):
-        return True
-
-    # View router for auth screens
-    if "current_view" not in st.session_state:
-        st.session_state.current_view = "login"  # login | signup
-
-    st.markdown("### Welcome to Prasad Reality Vizag")
-    st.caption("Please log in or create an account to continue.")
-    st.markdown("---")
-
-    if st.session_state.current_view == "login":
-        with st.form("login_form"):
-            email = st.text_input("Email", placeholder="you@example.com")
-            password = st.text_input("Password", type="password", placeholder="Enter your password")
-            login_submitted = st.form_submit_button("Log In")
-            if login_submitted:
-                ok, user, msg = authenticate(email, password)
-                if ok:
-                    st.session_state.auth = {"is_authenticated": True, "user": user}
-                    st.success(msg)
-                    st.experimental_rerun()
-                else:
-                    st.error(msg)
-        st.button("Create an account", on_click=lambda: st.session_state.update(current_view="signup"))
-
-    elif st.session_state.current_view == "signup":
-        with st.form("signup_form"):
-            name  = st.text_input("Full Name", placeholder="Your name")
-            email = st.text_input("Email", placeholder="you@example.com")
-            phone = st.text_input("Phone", placeholder="e.g., +91 6309729493")
-            pwd   = st.text_input("Password", type="password", placeholder="Choose a password")
-            pwd2  = st.text_input("Confirm Password", type="password", placeholder="Re-enter your password")
-            signup_submitted = st.form_submit_button("Sign Up")
-            if signup_submitted:
-                if pwd != pwd2:
-                    st.error("Passwords do not match.")
-                else:
-                    ok, msg = register_user(name, email, phone, pwd)
-                    if ok:
-                        st.success(msg)
-                        st.session_state.current_view = "login"
-                        st.experimental_rerun()
-                    else:
-                        st.error(msg)
-        st.button("Back to Login", on_click=lambda: st.session_state.update(current_view="login"))
-
-    st.stop()  # prevent the app body from rendering for unauthenticated users
-
-
-def auth_bar():
-    """Top-right user bar with logout."""
-    user = st.session_state.auth.get("user", {})
-    col1, col2 = st.columns([6, 1])
-    with col1:
-        st.caption(f"Signed in as **{user.get('name', '')}** ({user.get('email', '')})")
-    with col2:
-        if st.button("Logout"):
-            st.session_state.auth = {"is_authenticated": False, "user": None}
-            st.session_state.current_view = "login"
-            st.experimental_rerun()
-
-# -----------------------------
-# ===== END AUTH =====
-# -----------------------------
-
-# If not authenticated, render auth screens and stop
-if not require_auth():
-    st.stop()
-
-# Show who is logged in + logout
-auth_bar()
-
-# -----------------------------
-# Brand constants
-# -----------------------------
-BRAND_PRIMARY = "#0E57D3"  # blue
-BRAND_ACCENT  = "#FF5A3D"  # orange
-BRAND_DARK    = "#0A2B6D"  # deep blue
-LIGHT_BG      = "#0F172A"  # dark background
+BRAND_PRIMARY = "#0E57D3"
+BRAND_ACCENT  = "#FF5A3D"
+BRAND_DARK    = "#0A2B6D"
+BG_DARK       = "#0F172A"     # backdrop
 TEXT_LIGHT    = "#F8FAFC"
+TEXT_MUTED    = "#94A3B8"
 
-# Contact constants (single source of truth)
 WA_INDIA_NUM = "916309729493"
 WA_US_NUM    = "17864209015"
 IG_PROFILE   = "prasad.reality_vizag"
@@ -190,44 +50,108 @@ def load_logo_src():
 logo_src = load_logo_src()
 
 # -----------------------------
-# CSS (raw HTML + interpolated vars)
+# CSS (premium UI)
 # -----------------------------
 st.markdown(
     f"""
     <style>
-      body {{ background-color: {LIGHT_BG}; }}
-      .main .block-container {{ padding-top: 0.6rem; }}
-
-      .brand-header {{
-        background: linear-gradient(90deg, {BRAND_PRIMARY} 0%, {BRAND_DARK} 100%);
-        color: {TEXT_LIGHT}; padding: 18px 24px; border-radius: 16px; margin-bottom: 18px;
-        display: flex; align-items: center; gap: 16px;
+      :root {{
+        --brand-primary: {BRAND_PRIMARY};
+        --brand-accent:  {BRAND_ACCENT};
+        --brand-dark:    {BRAND_DARK};
+        --bg-dark:       {BG_DARK};
+        --text-light:    {TEXT_LIGHT};
+        --text-muted:    {TEXT_MUTED};
       }}
-      .brand-logo {{ height: 60px; width: auto; border-radius: 8px; background: rgba(255,255,255,0.12); padding: 6px; }}
-      .brand-header h1 {{ margin: 0; font-size: 30px; line-height: 1.2; }}
-      .brand-header p  {{ margin: 4px 0 0 0; opacity: 0.95; font-size: 13px; }}
+
+      body {{ background-color: var(--bg-dark); }}
+      .main .block-container {{ padding-top: 0.6rem; max-width: 1200px; }}
+
+      /* Header */
+      .brand-header {{
+        background: linear-gradient(98deg, var(--brand-primary) 0%, var(--brand-dark) 100%);
+        color: var(--text-light);
+        padding: 18px 24px;
+        border-radius: 16px;
+        margin-bottom: 18px;
+        display: flex; align-items: center; gap: 16px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.25);
+      }}
+      .brand-logo {{
+        height: 56px; width: auto; border-radius: 10px;
+        background: rgba(255,255,255,0.10); padding: 6px; backdrop-filter: blur(4px);
+      }}
+      .brand-header h1 {{ margin: 0; font-size: 30px; line-height: 1.2; letter-spacing: 0.3px; }}
+      .brand-header p  {{ margin: 6px 0 0 0; opacity: 0.92; font-size: 14px; }}
+
+      /* Sticky actions bar */
+      .sticky-actions {{
+        position: sticky; top: 0; z-index: 5; margin-bottom: 16px;
+        background: linear-gradient(98deg, rgba(14,87,211,0.2), rgba(10,43,109,0.15));
+        border: 1px solid rgba(255,255,255,0.08);
+        backdrop-filter: blur(8px);
+        padding: 10px 12px; border-radius: 12px;
+        display: flex; align-items: center; gap: 8px;
+      }}
+      .pill-mini {{
+        display:inline-flex; align-items:center; gap:6px;
+        padding:6px 10px; border-radius:999px;
+        background: rgba(255,255,255,0.10); color: var(--text-light);
+        font-weight:700; font-size:12px; border: 1px solid rgba(255,255,255,0.14);
+      }}
+      .link-btn {{
+        padding: 10px 14px; border-radius: 12px; text-decoration: none;
+        background: #f1f5f9; color: #0f172a; font-weight: 700;
+        border: 1px solid #e2e8f0; display: inline-block;
+        transition: transform .08s ease, box-shadow .12s ease;
+      }}
+      .link-btn:hover {{ transform: translateY(-1px); box-shadow: 0 8px 20px rgba(0,0,0,0.18); }}
+      .link-btn.primary {{ background: var(--brand-primary); color: #FFFFFF; border: none; }}
+
+      /* Cards */
+      .grid {{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }}
+      @media (max-width: 1000px) {{ .grid {{ grid-template-columns: repeat(2, 1fr); }} }}
+      @media (max-width: 680px)  {{ .grid {{ grid-template-columns: 1fr; }} }}
 
       .property-card {{
-        background: #FFFFFF; border-radius: 18px; box-shadow: 0 10px 20px rgba(0,0,0,0.18);
-        overflow: hidden; margin-bottom: 18px; border: 1px solid #e6edf3; transition: transform 0.15s ease, box-shadow 0.15s ease;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+        border-radius: 18px; box-shadow: 0 10px 24px rgba(0,0,0,0.18);
+        overflow: hidden; border: 1px solid #e6edf3;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
       }}
-      .property-card:hover {{ transform: translateY(-2px); box-shadow: 0 14px 28px rgba(0,0,0,0.22); }}
-      .card-image {{ width: 100%; height: 260px; object-fit: cover; display: block; }}
-      .card-body  {{ padding: 16px 18px; }}
+      .property-card:hover {{ transform: translateY(-3px); box-shadow: 0 16px 32px rgba(0,0,0,0.22); }}
+      .card-image {{ width: 100%; height: 240px; object-fit: cover; display: block; }}
+      .card-body  {{ padding: 14px 16px; }}
 
       .badges {{ display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }}
       .badge {{ display: inline-block; padding: 6px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: #eef2ff; color: #1e293b; border: 1px solid #e5e7eb; }}
-      .badge-primary {{ background: {BRAND_PRIMARY}; color: #FFFFFF; border: none; }}
-      .badge-accent  {{ background: {BRAND_ACCENT};  color: #FFFFFF; border: none; }}
+      .badge-primary {{ background: var(--brand-primary); color: #FFFFFF; border: none; }}
+      .badge-accent  {{ background: var(--brand-accent);  color: #FFFFFF; border: none; }}
 
-      .price {{ color: {BRAND_PRIMARY}; font-weight: 800; font-size: 22px; }}
-      .card-body h3 {{ color: #0F172A; font-weight: 800; }}
+      .pill {{
+        display:inline-block; padding:4px 8px; border-radius:999px; background:#eef2ff; color:#1e293b;
+        font-weight:700; font-size:12px; border:1px solid #e5e7eb; margin-bottom: 6px;
+      }}
+      .price {{ color: var(--brand-primary); font-weight: 800; font-size: 20px; }}
+
       .meta  {{ color: #334155; font-size: 13px; margin-top: 2px; }}
-      .cta-row {{ display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }}
-      .link-btn {{ padding: 10px 14px; border-radius: 12px; text-decoration: none; background: #f1f5f9; color: #0f172a; font-weight: 700; border: 1px solid #e2e8f0; display: inline-block; }}
-      .link-btn.primary {{ background: {BRAND_PRIMARY}; color: #FFFFFF; border: none; }}
+      .desc  {{ margin-top: 8px; color:#334155; line-height: 1.45; }}
 
-      .pill {{ display:inline-block; padding:4px 8px; border-radius:999px; background:#eef2ff; color:#1e293b; font-weight:700; font-size:12px; border:1px solid #e5e7eb; }}
+      .cta-row {{ display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }}
+      .card-actions {{ display:flex; gap:8px; margin-top:10px; }}
+
+      /* Floating shortlist drawer */
+      .drawer {{
+        position: sticky; top: 72px;
+        background: rgba(255,255,255,0.08);
+        border: 1px solid rgba(255,255,255,0.16);
+        backdrop-filter: blur(10px);
+        padding: 12px; border-radius: 12px; color: var(--text-light);
+      }}
+      .drawer h4 {{ margin: 2px 0 10px 0; font-size: 16px; }}
+      .drawer-item {{ font-size: 13px; color: var(--text-light); margin-bottom: 8px; }}
+      .drawer-caption {{ font-size: 11px; color: var(--text-muted); }}
+
     </style>
     """,
     unsafe_allow_html=True,
@@ -243,7 +167,7 @@ if logo_src:
           {logo_src}
           <div>
             <h1>Prasad Reality Vizag</h1>
-            <p>Digital showcase for homes in Visakhapatnam — browse, filter, and shortlist in seconds.</p>
+            <p>Browse, filter, and shortlist homes in Visakhapatnam—then share via WhatsApp in seconds.</p>
           </div>
         </div>
         """,
@@ -255,7 +179,7 @@ else:
         <div class="brand-header">
           <div>
             <h1>🏡 Prasad Reality Vizag</h1>
-            <p>Digital showcase for homes in Visakhapatnam — browse, filter, and shortlist in seconds.</p>
+            <p>Browse, filter, and shortlist homes in Visakhapatnam—then share via WhatsApp in seconds.</p>
           </div>
         </div>
         """,
@@ -263,7 +187,7 @@ else:
     )
 
 # -----------------------------
-# Data (user-provided listings only)
+# Data (your listings)
 # -----------------------------
 BASE_PROPERTIES = [
     {
@@ -329,7 +253,7 @@ BASE_PROPERTIES = [
 ]
 
 # -----------------------------
-# Session state
+# Session
 # -----------------------------
 if "properties" not in st.session_state:
     st.session_state.properties = list(BASE_PROPERTIES)
@@ -357,61 +281,7 @@ st.sidebar.markdown("---")
 show_map = st.sidebar.checkbox("Show heatmap of results", value=ENABLE_HEATMAP)
 
 # -----------------------------
-# Filtering
-# -----------------------------
-def apply_filters(data):
-    df = pd.DataFrame(data)
-    if df.empty:
-        return []
-    df = df[df["locality"].isin(selected_localities)]
-    if selected_condition != "All":
-        df = df[df["condition"] == selected_condition]
-    if selected_type != "All":
-        df = df[df["property_type"] == selected_type]
-    if search_text:
-        s = search_text.strip().lower()
-        title = df["title"].astype(str).str.lower()
-        desc  = df["desc"].astype(str).str.lower()
-        df = df[title.str.contains(s) | desc.str.contains(s)]
-    if sort_by == "Price (low → high)":
-        df = df.sort_values(by="price_lakhs", ascending=True)
-    elif sort_by == "Price (high → low)":
-        df = df.sort_values(by="price_lakhs", ascending=False)
-    elif sort_by == "Size (small → large)":
-        df = df.sort_values(by="size_sqft", ascending=True)
-    elif sort_by == "Size (large → small)":
-        df = df.sort_values(by="size_sqft", ascending=False)
-    elif sort_by == "Newest Listings":
-        df = df.sort_values(by="is_new_listing", ascending=False)
-    return df.to_dict(orient="records")
-
-filtered_props = apply_filters(st.session_state.properties)
-
-# -----------------------------
-# Header stats
-# -----------------------------
-left, right = st.columns([3, 2])
-with left:
-    st.subheader("Find your Vizag home")
-    st.write("Use filters to explore properties by area, condition, and type. Add to shortlist and share easily.")
-with right:
-    st.metric("Results", f"{len(filtered_props)} properties")
-    total_premium = sum(1 for p in filtered_props if p.get("is_premium"))
-    st.metric("Premium listings", f"{total_premium}")
-
-# -----------------------------
-# Map heatmap (optional)
-# -----------------------------
-if show_map and filtered_props:
-    df_map = pd.DataFrame(filtered_props)[["lat","lon","price_lakhs","size_sqft"]].rename(columns={"lat":"latitude","lon":"longitude"})
-    df_map["weight"] = df_map["price_lakhs"].apply(lambda x: x if x and x > 0 else None)
-    df_map["weight"] = df_map["weight"].fillna(df_map["size_sqft"].where(df_map["size_sqft"] > 0, 1)).fillna(1)
-    heat_layer = pdk.Layer("HeatmapLayer", data=df_map, get_position="[longitude, latitude]", get_weight="weight", radiusPixels=60)
-    view_state = pdk.ViewState(latitude=df_map["latitude"].mean(), longitude=df_map["longitude"].mean(), zoom=12)
-    st.pydeck_chart(pdk.Deck(layers=[heat_layer], initial_view_state=view_state, map_style="light"))
-
-# -----------------------------
-# Helpers (price formatting)
+# Helpers
 # -----------------------------
 def format_price_lakhs(price_lakhs: float | int | None) -> str:
     if not price_lakhs or price_lakhs <= 0:
@@ -428,7 +298,78 @@ def whatsapp_link(number: str, text: str) -> str:
     return f"https://wa.me/{number}?text=" + quote_plus(text)
 
 # -----------------------------
-# Property cards
+# Filtering
+# -----------------------------
+def apply_filters(data):
+    df = pd.DataFrame(data)
+    if df.empty:
+        return []
+    df = df[df["locality"].isin(selected_localities)]
+    if selected_condition != "All":
+        df = df[df["condition"] == selected_condition]
+    if selected_type != "All":
+        df = df[df["property_type"] == selected_type]
+    if search_text:
+        s = search_text.strip().lower()
+        title = df["title"].astype(str).str.lower()
+        desc  = df["desc"].astype(str).str.lower()
+        df = df[title.str.contains(s) | desc.str_contains(s)]
+    if sort_by == "Price (low → high)":
+        df = df.sort_values(by="price_lakhs", ascending=True)
+    elif sort_by == "Price (high → low)":
+        df = df.sort_values(by="price_lakhs", ascending=False)
+    elif sort_by == "Size (small → large)":
+        df = df.sort_values(by="size_sqft", ascending=True)
+    elif sort_by == "Size (large → small)":
+        df = df.sort_values(by="size_sqft", ascending=False)
+    elif sort_by == "Newest Listings":
+        df = df.sort_values(by="is_new_listing", ascending=False)
+    return df.to_dict(orient="records")
+
+filtered_props = apply_filters(st.session_state.properties)
+
+# -----------------------------
+# Sticky quick actions bar
+# -----------------------------
+short_count = len(st.session_state.shortlist)
+st.markdown(
+    f"""
+    <div class="sticky-actions">
+      <span class="pill-mini">🔎 Filters active</span>
+      <span class="pill-mini">📦 {len(filtered_props)} results</span>
+      <span class="pill-mini">⭐ Shortlist: {short_count}</span>
+      <span style="margin-left:auto;">
+        <a class="link-btn primary" href="{whatsapp_link(WA_INDIA_NUM, 'Hi, Iink-btn" href="https://www.instagram.com/{IG_PROFILEan>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
+# -----------------------------
+# Header stats
+# -----------------------------
+left, right = st.columns([3, 2])
+with left:
+    st.subheader("Find your Vizag home")
+    st.write("Filter by area, type, and condition. Add to shortlist and share instantly via WhatsApp.")
+with right:
+    st.metric("Results", f"{len(filtered_props)} properties")
+    total_premium = sum(1 for p in filtered_props if p.get("is_premium"))
+    st.metric("Premium listings", f"{total_premium}")
+
+# -----------------------------
+# Map heatmap (optional)
+# -----------------------------
+if show_map and filtered_props:
+    df_map = pd.DataFrame(filtered_props)[["lat","lon","price_lakhs","size_sqft"]].rename(columns={"lat":"latitude","lon":"longitude"})
+    df_map["weight"] = df_map["price_lakhs"].apply(lambda x: x if x and x > 0 else None)
+    df_map["weight"] = df_map["weight"].fillna(df_map["size_sqft"].where(df_map["size_sqft"] > 0, 1)).fillna(1)
+    heat_layer = pdk.Layer("HeatmapLayer", data=df_map, get_position="[longitude, latitude]", get_weight="weight", radiusPixels=56)
+    view_state = pdk.ViewState(latitude=df_map["latitude"].mean(), longitude=df_map["longitude"].mean(), zoom=12)
+    st.pydeck_chart(pdk.Deck(layers=[heat_layer], initial_view_state=view_state, map_style="light"))
+
+# -----------------------------
+# Property Cards (grid)
 # -----------------------------
 def render_property_card(prop: dict):
     price_text = format_price_lakhs(prop.get("price_lakhs", 0))
@@ -451,98 +392,91 @@ def render_property_card(prop: dict):
     insta_profile = f"https://www.instagram.com/{IG_PROFILE}/"
     insta_dm_app  = f"instagram://user?username={IG_PROFILE}"
 
+    # Compact description with "show more" using expander
+    with st.container():
+        st.markdown(
+            f"""
+            <div class="property-card">
+              <img class="card-image" src="{prop.get('img')}" alt="Photo of {prop.get('title')}" loading       <div class="badges">{badges_html}</div>
+                <div class="price">{price_text}</div>
+                <h3 style="margin: 6px 0 2px 0;">{prop.get('title')}</h3>
+                <div class="meta">{prop.get('condition')} • {prop.get('property_type')}</div>
+                <div class="meta">{prop.get('bed')} Bed · {prop.get('bath')} Bath · {prop.get('size_sqft')} sqft</div>
+                <div class="card-actions">
+                  {wa_india}WhatsApp (India)</a>
+                  <a class="tsApp (US)</a>
+                  {insta_profile}Instagram</a>
+                </div>
+              </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        with st.expander("📄 Show more details"):
+            st.write(prop.get("desc"))
+
+        c1, c2 = st.columns([1, 1])
+        with c1:
+            if st.button(f"➕ Shortlist {prop['id']}", key=f"sl_{prop['id']}"):
+                if prop not in st.session_state.shortlist:
+                    st.session_state.shortlist.append(prop)
+                    st.success(f"Added {prop['id']} to shortlist")
+                else:
+                    st.info("Already in shortlist")
+        if ENABLE_PER_CARD_DOWNLOAD:
+            with c2:
+                st.download_button(
+                    label="⬇️ Download info",
+                    data=pd.Series(prop).to_json(indent=2),
+                    file_name=f"{prop['id']}.json",
+                    mime="application/json",
+                    key=f"dl_{prop['id']}",
+                )
+
+# Render grid with a floating shortlist drawer on the side
+col_grid, col_drawer = st.columns([4, 1])
+with col_grid:
+    st.markdown('<div class="grid">', unsafe_allow_html=True)
+    for prop in filtered_props:
+        render_property_card(prop)
+    st.markdown('</div>', unsafe_allow_html=True)
+
+with col_drawer:
     st.markdown(
-        f"""
-        <div class="property-card">
-          {prop.get(
-          <div class="card-body">
-            {locality_pill}
-            <div class="badges">{badges_html}</div>
-            <div class="price">{price_text}</div>
-            <h3 style="margin: 6px 0 2px 0;">{prop.get('title')}</h3>
-            <div class="meta">{prop.get('condition')} • {prop.get('property_type')}</div>
-            <div class="meta">{prop.get('bed')} Bed · {prop.get('bath')} Bath · {prop.get('size_sqft')} sqft</div>
-            <p style="margin-top: 10px; color:#334155;">{prop.get('desc')}</p>
-            <div class="cta-row">
-              <a class="link-btn primary" href="{wa_india}"{wa_us}WhatsApp (US)</a>
-              {insta_profile}Instagram</a>
-            </div>
-            <div class="cta-row">
-              {insta_dm_app}Open Instagram DM (App)</a>
-            </div>
-          </div>
+        """
+        <div class="drawer">
+          <h4>⭐ Shortlist</h4>
         </div>
         """,
         unsafe_allow_html=True,
     )
-
-    c1, c2 = st.columns([1, 1])
-    with c1:
-        if st.button(f"➕ Shortlist {prop['id']}", key=f"sl_{prop['id']}"):
-            if prop not in st.session_state.shortlist:
-                st.session_state.shortlist.append(prop)
-                st.success(f"Added {prop['id']} to shortlist")
-            else:
-                st.info("Already in shortlist")
-    if ENABLE_PER_CARD_DOWNLOAD:
-        with c2:
-            st.download_button(
-                label="⬇️ Download info",
-                data=pd.Series(prop).to_json(indent=2),
-                file_name=f"{prop['id']}.json",
-                mime="application/json",
-                key=f"dl_{prop['id']}",
-            )
-
-# Grid
-cols = st.columns(3)
-for i, prop in enumerate(filtered_props):
-    with cols[i % 3]:
-        render_property_card(prop)
-
-# -----------------------------
-# Shortlist
-# -----------------------------
-st.markdown("---")
-st.subheader("Your Shortlist")
-if st.session_state.shortlist:
-    sh_cols = st.columns(3)
-    for i, prop in enumerate(st.session_state.shortlist):
-        with sh_cols[i % 3]:
-            st.write(f"**{prop['id']} — {prop['title']}**")
-            st.caption(f"{prop['locality']} • {format_price_lakhs(prop.get('price_lakhs', 0))} • {prop.get('size_sqft')} sqft")
-            if st.button(f"Remove {prop['id']}", key=f"rm_{prop['id']}"):
-                st.session_state.shortlist = [p for p in st.session_state.shortlist if p["id"] != prop["id"]]
-                st.experimental_rerun()
-
-    df_short = pd.DataFrame(st.session_state.shortlist)
-    st.download_button(
-        "⬇️ Download shortlist (CSV)",
-        data=df_short.to_csv(index=False),
-        file_name=f"shortlist_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
-        mime="text/csv",
-    )
-
-    lines = [
-        f"{p['id']} | {p['title']} | {p['locality']} | "
-        f"{format_price_lakhs(p.get('price_lakhs', 0))} | {p['size_sqft']} sqft"
-        for p in st.session_state.shortlist
-    ]
-    msg_all = "Prasad Reality Vizag — My shortlist:\n" + "\n".join(lines)
-
-    c_ind, c_us = st.columns(2)
-    with c_ind:
+    if st.session_state.shortlist:
+        for p in st.session_state.shortlist:
+            st.markdown(f"<div class='drawer-item'>• <strong>{p['id']}</strong> — {p['title']}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='drawer-caption'>{p['locality']} • {format_price_lakhs(p.get('price_lakhs', 0))}</div>", unsafe_allow_html=True)
+        df_short = pd.DataFrame(st.session_state.shortlist)
+        st.download_button(
+            "⬇️ Download shortlist (CSV)",
+            data=df_short.to_csv(index=False),
+            file_name=f"shortlist_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
+            mime="text/csv",
+            use_container_width=True,
+        )
+        lines = [
+            f"{p['id']} | {p['title']} | {p['locality']} | {format_price_lakhs(p.get('price_lakhs', 0))} | {p['size_sqft']} sqft"
+            for p in st.session_state.shortlist
+        ]
+        msg_all = "Prasad Reality Vizag — My shortlist:\n" + "\n".join(lines)
         st.markdown(
-            f'{whatsapp_link(WA_INDIA_NUM, msg_all)}Send shortlist via WhatsApp (India)</a>',
+            f'{whatsapp_link(WA_INDIA_NUM, msg_all)}Share shortlist (India)</a>',
             unsafe_allow_html=True,
         )
-    with c_us:
         st.markdown(
-            f'{whatsapp_link(WA_US_NUM, msg_all)}Send shortlist via WhatsApp (US)</a>',
+            f'<a class="link-btn" href="{whatsapp_link(WA_US_NUM,(US)</a>',
             unsafe_allow_html=True,
         )
-else:
-    st.info("Your shortlist is empty. Add properties using the ➕ button on each card.")
+    else:
+        st.caption("No items yet—add properties using the ➕ buttons.")
 
 # -----------------------------
 # Lead Capture (optional)
@@ -571,7 +505,6 @@ if ENABLE_LEADS:
                     "budget_lakhs": budget, "notes": notes,
                 })
                 st.success("Lead submitted! Our team will reach out shortly.")
-
     if st.session_state.get("leads"):
         df_leads = pd.DataFrame(st.session_state.leads)
         st.dataframe(df_leads, use_container_width=True)
@@ -611,7 +544,9 @@ st.markdown(
     """
     <div style="margin-top: 20px; color:#e2e8f0;">
       <strong>Prototype notes:</strong> Mocked data only, no backend. For production: connect real listings & social leads.
-      <br>Contact via WhatsApp India (+91       <br>Contact via WhatsApp India (+91 6309729493) or US (+1 786 420 9015).
+      <br>Contact via WhatsApp India (+91 6309729493) or US (+1 786 420 9015).
     </div>
     """,
     unsafe_allow_html=True,
+)
+``
