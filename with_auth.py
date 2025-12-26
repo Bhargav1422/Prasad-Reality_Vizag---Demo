@@ -339,7 +339,7 @@ st.markdown(
       <span class="pill-mini">📦 {len(filtered_props)} results</span>
       <span class="pill-mini">⭐ Shortlist: {short_count}</span>
       <span style="margin-left:auto;">
-        <a class="link-btn primary" href="{whatsapp_link(WA_INDIA_NUM, 'Hi, Iink-btn" href="https://www.instagram.com/{IG_PROFILEan>
+        <a class="link-btn primary" href="{whatsapp_link(WA_INDIA_NUM, 'Hi, Iink-btn" href="https://www.instagram.com/{IG_PROFILE /a>
     </div>
     """,
     unsafe_allow_html=True,
