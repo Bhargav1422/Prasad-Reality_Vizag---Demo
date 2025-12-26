@@ -306,7 +306,6 @@ def render_property_card(prop: dict):
       <a class="link-btn")</a>
       <a class="link-btn" href="{insta_profile}" target="_ card_html = f"""
     <div class="property-card">
-      <img}
       <div class="card-body">
         {locality_pill}
         <div class="badges">{badges_html}</div>
