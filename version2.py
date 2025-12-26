@@ -393,7 +393,7 @@ def render_property_card(prop: dict):
         f"""
         <div class="property-card">
           <img class="card-image" src="{img}" alt="Photo of {title}" loading="lazy"
-               onerror="this.srcs_html}</div>
+               onerror="this.srcs_html}}</div>
             <div class="price">{price_text}</div>
             <h3 style="margin: 6px 0 2px 0;">{title}</h3>
             <div class="meta">{cond} • {ptype}</div>
