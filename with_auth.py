@@ -1,5 +1,5 @@
 
-# streamlit_app.py — Public showcase, premium UI, no login
+# streamlit_app.py — Public showcase, premium UI, no login, all HTML entity fixes applied
 import os
 import base64
 from datetime import datetime
@@ -50,7 +50,7 @@ def load_logo_src():
 logo_src = load_logo_src()
 
 # -----------------------------
-# CSS (premium UI)
+# CSS (premium UI) — raw HTML with f-string and escaped braces
 # -----------------------------
 st.markdown(
     f"""
@@ -151,14 +151,13 @@ st.markdown(
       .drawer h4 {{ margin: 2px 0 10px 0; font-size: 16px; }}
       .drawer-item {{ font-size: 13px; color: var(--text-light); margin-bottom: 8px; }}
       .drawer-caption {{ font-size: 11px; color: var(--text-muted); }}
-
     </style>
     """,
     unsafe_allow_html=True,
 )
 
 # -----------------------------
-# Header
+# Header (raw HTML)
 # -----------------------------
 if logo_src:
     st.markdown(
@@ -313,7 +312,7 @@ def apply_filters(data):
         s = search_text.strip().lower()
         title = df["title"].astype(str).str.lower()
         desc  = df["desc"].astype(str).str.lower()
-        df = df[title.str.contains(s) | desc.str_contains(s)]
+        df = df[title.str.contains(s) | desc.str.contains(s)]
     if sort_by == "Price (low → high)":
         df = df.sort_values(by="price_lakhs", ascending=True)
     elif sort_by == "Price (high → low)":
@@ -329,21 +328,21 @@ def apply_filters(data):
 filtered_props = apply_filters(st.session_state.properties)
 
 # -----------------------------
-# Sticky quick actions bar
+# Sticky quick actions bar (safe version)
 # -----------------------------
-short_count = len(st.session_state.shortlist)
-st.markdown(
-    f"""
-    <div class="sticky-actions">
-      <span class="pill-mini">🔎 Filters active</span>
-      <span class="pill-mini">📦 {len(filtered_props)} results</span>
-      <span class="pill-mini">⭐ Shortlist: {short_count}</span>
-      <span style="margin-left:auto;">
-        <a class="link-btn primary" href="{whatsapp_link(WA_INDIA_NUM, 'Hi, Iink-btn" href="https://www.instagram.com/{IG_PROFILE /a>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
+wa_hi_india = whatsapp_link(WA_INDIA_NUM, "Hi, I'm browsing the Vizag listings!")
+sticky_html = f"""
+<div class="sticky-actions">
+  <span class="pill-mini">🔎 Filters active</span>
+  <span class="pill-mini">📦 {len(filtered_props)} results</span>
+  <span class="pill-mini">⭐ Shortlist: {len(st.session_state.shortlist)}</span>
+  <span style="margin-left:auto;">
+    {wa_hi_india}WhatsApp (India)</a>
+    https://www.instagram.com/{IG_PROFILE}/Instagram</a>
+  </span>
+</div>
+"""
+st.markdown(sticky_html, unsafe_allow_html=True)
 
 # -----------------------------
 # Header stats
@@ -392,46 +391,48 @@ def render_property_card(prop: dict):
     insta_profile = f"https://www.instagram.com/{IG_PROFILE}/"
     insta_dm_app  = f"instagram://user?username={IG_PROFILE}"
 
-    # Compact description with "show more" using expander
-    with st.container():
-        st.markdown(
-            f"""
-            <div class="property-card">
-              <img class="card-image" src="{prop.get('img')}" alt="Photo of {prop.get('title')}" loading       <div class="badges">{badges_html}</div>
-                <div class="price">{price_text}</div>
-                <h3 style="margin: 6px 0 2px 0;">{prop.get('title')}</h3>
-                <div class="meta">{prop.get('condition')} • {prop.get('property_type')}</div>
-                <div class="meta">{prop.get('bed')} Bed · {prop.get('bath')} Bath · {prop.get('size_sqft')} sqft</div>
-                <div class="card-actions">
-                  {wa_india}WhatsApp (India)</a>
-                  <a class="tsApp (US)</a>
-                  {insta_profile}Instagram</a>
-                </div>
-              </div>
+    # Card HTML
+    st.markdown(
+        f"""
+        <div class="property-card">
+          {prop.get(
+          <div class="card-body">
+            {locality_pill}
+            <div class="badges">{badges_html}</div>
+            <div class="price">{price_text}</div>
+            <h3 style="margin: 6px 0 2px 0;">{prop.get('title')}</h3>
+            <div class="meta">{prop.get('condition')} • {prop.get('property_type')}</div>
+            <div class="meta">{prop.get('bed')} Bed · {prop.get('bath')} Bath · {prop.get('size_sqft')} sqft</div>
+            <div class="card-actions">
+              {wa_india}WhatsApp (India)</a>
+              {wa_us}WhatsApp (US)</a>
+              {insta_profile}Instagram</a>
             </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        with st.expander("📄 Show more details"):
-            st.write(prop.get("desc"))
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    with st.expander("📄 Show more details"):
+        st.write(prop.get("desc"))
 
-        c1, c2 = st.columns([1, 1])
-        with c1:
-            if st.button(f"➕ Shortlist {prop['id']}", key=f"sl_{prop['id']}"):
-                if prop not in st.session_state.shortlist:
-                    st.session_state.shortlist.append(prop)
-                    st.success(f"Added {prop['id']} to shortlist")
-                else:
-                    st.info("Already in shortlist")
-        if ENABLE_PER_CARD_DOWNLOAD:
-            with c2:
-                st.download_button(
-                    label="⬇️ Download info",
-                    data=pd.Series(prop).to_json(indent=2),
-                    file_name=f"{prop['id']}.json",
-                    mime="application/json",
-                    key=f"dl_{prop['id']}",
-                )
+    c1, c2 = st.columns([1, 1])
+    with c1:
+        if st.button(f"➕ Shortlist {prop['id']}", key=f"sl_{prop['id']}"):
+            if prop not in st.session_state.shortlist:
+                st.session_state.shortlist.append(prop)
+                st.success(f"Added {prop['id']} to shortlist")
+            else:
+                st.info("Already in shortlist")
+    if ENABLE_PER_CARD_DOWNLOAD:
+        with c2:
+            st.download_button(
+                label="⬇️ Download info",
+                data=pd.Series(prop).to_json(indent=2),
+                file_name=f"{prop['id']}.json",
+                mime="application/json",
+                key=f"dl_{prop['id']}",
+            )
 
 # Render grid with a floating shortlist drawer on the side
 col_grid, col_drawer = st.columns([4, 1])
@@ -454,6 +455,8 @@ with col_drawer:
         for p in st.session_state.shortlist:
             st.markdown(f"<div class='drawer-item'>• <strong>{p['id']}</strong> — {p['title']}</div>", unsafe_allow_html=True)
             st.markdown(f"<div class='drawer-caption'>{p['locality']} • {format_price_lakhs(p.get('price_lakhs', 0))}</div>", unsafe_allow_html=True)
+
+        # Export & share
         df_short = pd.DataFrame(st.session_state.shortlist)
         st.download_button(
             "⬇️ Download shortlist (CSV)",
@@ -467,12 +470,14 @@ with col_drawer:
             for p in st.session_state.shortlist
         ]
         msg_all = "Prasad Reality Vizag — My shortlist:\n" + "\n".join(lines)
+        wa_india_all = whatsapp_link(WA_INDIA_NUM, msg_all)
+        wa_us_all    = whatsapp_link(WA_US_NUM, msg_all)
         st.markdown(
-            f'{whatsapp_link(WA_INDIA_NUM, msg_all)}Share shortlist (India)</a>',
+            f'{wa_india_all}Share shortlist (India)</a>',
             unsafe_allow_html=True,
         )
         st.markdown(
-            f'<a class="link-btn" href="{whatsapp_link(WA_US_NUM,(US)</a>',
+            f'{wa_us_all}Share shortlist (US)</a>',
             unsafe_allow_html=True,
         )
     else:
@@ -528,7 +533,7 @@ if ENABLE_INSTAGRAM:
         embed_html = f"""
         <blockquote class="instagram-media" data-instgrm-permalink="{insta_url}" data-instgrm-version="14"
                     style="background:#FFF; border:0; margin: 1px; max-width:540px; padding:0; width:100%;"></blockquote>
-        https://www.instagram.com/embed.js</script>
+        <script async src="https://wwwd.js</script>
         """
         st_html(embed_html, height=600)
     else:
@@ -538,15 +543,13 @@ if ENABLE_INSTAGRAM:
         )
 
 # -----------------------------
-# Footer
+# Footer (raw HTML)
 # -----------------------------
 st.markdown(
     """
-    <div style="margin-top: 20px; color:#e2e8f0;">
+    <div style="margin-top: 20px; color:#e2e8f0    <div style="margin-top: 20px; color:#e2e8f0;">
       <strong>Prototype notes:</strong> Mocked data only, no backend. For production: connect real listings & social leads.
       <br>Contact via WhatsApp India (+91 6309729493) or US (+1 786 420 9015).
     </div>
     """,
     unsafe_allow_html=True,
-)
-``
