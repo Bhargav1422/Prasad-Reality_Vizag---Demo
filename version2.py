@@ -13,7 +13,7 @@ from streamlit.components.v1 import html as st_html
 # Brand Theme (components-only)
 # -----------------------------
 st.set_page_config(
-    page_title="Prasad Realty Vizag — Demo Showcase",
+    page_title="Prasad Realty Vizag",
     page_icon="🏡",
     layout="wide",
     theme={
