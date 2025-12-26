@@ -639,4 +639,4 @@ st.markdown(
       <br>Contact via WhatsApp India (+91 6309729493) or US (+1 786 420 9015).
     </div>
     """,
-    unsafe_allow_html=True,
+    unsafe_allow_html=True,)
