@@ -477,5 +477,5 @@ if ENABLE_INSTAGRAM:
 # -----------------------------
 # Footer
 # -----------------------------
-stst.divider()
+st.divider()
 st.caption("Demo notes: Mocked data only; CSV persistence for leads & bookings; no backend.")
