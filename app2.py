@@ -209,14 +209,13 @@ for i, row in filtered.iterrows():
                 if pd.notna(row["price_value"])
                 else "💰 Price on request"
             )
-        pid = row["property_id"]
-
-        if pid not in st.session_state.favorites:
-            if st.button("⭐ Add to Favorites", key=f"fav_{pid}"):
-                st.session_state.favorites.append(pid)
-                st.success("Added to favorites")
-        else:
-            st.info("⭐ In your favorites")
+            pid = row["property_id"]
+            if pid not in st.session_state.favorites:
+                if st.button("⭐ Add to Favorites", key=f"fav_{pid}"):
+                    st.session_state.favorites.append(pid)
+                    st.success("Added to favorites")
+            else:
+                st.info("⭐ In your favorites")
 
 
         with st.expander("📅 Book Visit / Video Call"):
