@@ -7,7 +7,7 @@ import base64
 # ---------------- CONFIG ----------------
 st.set_page_config("Prasad Realty Vizag", "🏡", layout="wide")
 
-GITHUB_REPO = "YOUR_USERNAME/YOUR_REPO"
+GITHUB_REPO = "Bhargav1422/Prasad-Reality_Vizag---Demo"
 DATA_PATH = "data"
 PROPERTIES_FILE = "properties.csv"
 LEADS_FILE = "leads.csv"
