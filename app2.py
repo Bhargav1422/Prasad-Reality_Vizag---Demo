@@ -144,7 +144,8 @@ with st.sidebar:
         else:
             st.error("Wrong password")
 
-with st.sidebar.subheader("⭐ Favorites")
+with st.sidebar:
+    st.subheader("⭐ Favorites")
     if st.session_state.favorites:
         fav_props = props[props["property_id"].isin(st.session_state.favorites)]
         st.sidebar.write(f"Selected: {len(fav_props)}")
