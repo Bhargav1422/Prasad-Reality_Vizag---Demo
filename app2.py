@@ -9,6 +9,14 @@ from urllib.parse import quote_plus
 if "admin" not in st.session_state:
     st.session_state.admin = False
 
+if "favorites" not in st.session_state:
+    st.session_state.favorites = []
+
+if "compare" not in st.session_state:
+    st.session_state.compare = False
+
+
+
 # ---------------- CONFIG ----------------
 st.set_page_config("Prasad Realty Vizag", "🏡", layout="wide")
 
@@ -135,6 +143,40 @@ with st.sidebar:
             st.success("Admin access enabled")
         else:
             st.error("Wrong password")
+
+with st.sidebar.subheader("⭐ Favorites")
+    if st.session_state.favorites:
+        fav_props = props[props["property_id"].isin(st.session_state.favorites)]
+        st.sidebar.write(f"Selected: {len(fav_props)}")
+        if len(fav_props) > 3:
+            st.sidebar.warning("Select up to 3 properties to compare")
+        if st.sidebar.button("🔁 Compare"):
+            st.session_state.compare = True
+    else:
+        st.sidebar.caption("No favorites selected yet")
+
+if st.session_state.compare:
+    st.subheader("🔁 Property Comparison")
+
+    compare_df = props[
+        props["property_id"].isin(st.session_state.favorites[:3])
+    ][[
+        "title",
+        "locality",
+        "property_category",
+        "size_value",
+        "size_unit",
+        "price_value",
+        "price_unit"
+    ]]
+
+    st.dataframe(compare_df.T, use_container_width=True)
+
+    if st.button("❌ Close Comparison"):
+        st.session_state.compare = False
+
+    st.divider()
+
 # ---------------- PROPERTY CARDS ----------------
 cols = st.columns(3)
 
@@ -166,6 +208,15 @@ for i, row in filtered.iterrows():
                 if pd.notna(row["price_value"])
                 else "💰 Price on request"
             )
+        pid = row["property_id"]
+
+            if pid not in st.session_state.favorites:
+            if st.button("⭐ Add to Favorites", key=f"fav_{pid}"):
+                st.session_state.favorites.append(pid)
+                st.success("Added to favorites")
+            else:
+                st.info("⭐ In your favorites")
+
 
         with st.expander("📅 Book Visit / Video Call"):
             name = st.text_input("Name", key=f"name_{i}")
