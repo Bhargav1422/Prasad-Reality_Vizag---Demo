@@ -112,7 +112,7 @@ for i, row in filtered.iterrows():
             visit = st.radio("Type", ["Video Call", "In-Person"], key=f"visit_{i}")
             date = st.date_input("Date", datetime.today(), key=f"date_{i}")
             slot = st.selectbox("Slot", ["10–11", "11–12", "12–1", "3–4", "4–5"], key=f"slot_{i}")
-            if st.button("Confirm Booking", key=f"book_{i}"):
+                if st.button("Confirm Booking", key=f"book_{i}"):
                 
                     leads = read_csv_from_github(LEADS_FILE)
                 
