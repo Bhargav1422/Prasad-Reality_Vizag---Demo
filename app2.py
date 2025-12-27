@@ -3,6 +3,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 import requests
 import base64
+from io import StringIO
 
 # ---------------- CONFIG ----------------
 st.set_page_config("Prasad Realty Vizag", "🏡", layout="wide")
@@ -26,7 +27,7 @@ def github_url(file):
 def read_csv_from_github(file):
     r = requests.get(github_url(file), headers=HEADERS)
     content = base64.b64decode(r.json()["content"])
-    return pd.read_csv(pd.compat.StringIO(content.decode()))
+    return pd.read_csv(StringIO(content.decode()))
 
 def write_csv_to_github(df, file, message):
     r = requests.get(github_url(file), headers=HEADERS)
