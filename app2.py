@@ -23,6 +23,54 @@ HEADERS = {
     "Authorization": f"token {GITHUB_TOKEN}",
     "Accept": "application/vnd.github.v3+json"
 }
+# ---------------- BRANDING ----------------
+st.markdown("""
+<style>
+/* App background */
+.stApp {
+    background-color: #F5F7FA;
+}
+
+/* Header container */
+.header-container {
+    display: flex;
+    align-items: center;
+    padding: 1rem 0;
+}
+
+/* Title text */
+.brand-title {
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: #0E2A47;
+    margin-left: 1rem;
+}
+
+/* Accent buttons */
+.stButton>button {
+    background-color: #0E2A47;
+    color: white;
+    border-radius: 8px;
+    padding: 0.4rem 0.8rem;
+    border: none;
+}
+
+.stButton>button:hover {
+    background-color: #C9A227;
+    color: black;
+}
+
+/* Card effect */
+.block-container {
+    padding-top: 1.5rem;
+}
+
+/* Admin divider */
+hr {
+    border-top: 2px solid #C9A227;
+}
+</style>
+""", unsafe_allow_html=True)
 
 # ---------------- GITHUB HELPERS ----------------
 def github_url(file):
@@ -52,8 +100,21 @@ props = read_csv_from_github(PROPERTIES_FILE)
 props = props[props["is_active"] == True]
 
 # ---------------- HEADER ----------------
-st.title("🏡 Prasad Realty Vizag")
-st.caption("Explore properties • Watch reels • Book visits")
+col1, col2 = st.columns([1, 6])
+
+with col1:
+    st.image("assets/logo.png", width=110)
+
+with col2:
+    st.markdown("""
+    <div class="header-container">
+        <div class="brand-title">Prasad Realty Vizag</div>
+    </div>
+    <span style="color:#555;">
+        Explore verified properties • Watch reels • Book visits
+    </span>
+    """, unsafe_allow_html=True)
+
 
 # ---------------- FILTERS ----------------
 with st.sidebar:
@@ -158,7 +219,7 @@ for i, row in filtered.iterrows():
         """
         
                 whatsapp_url = f"https://wa.me/916309729493?text={quote_plus(message)}"
-        
+                st.markdown("<hr>", unsafe_allow_html=True)
                 st.success("Booking captured successfully.")
                 st.markdown(
                     f"[📲 Open WhatsApp to Confirm]({whatsapp_url})",
