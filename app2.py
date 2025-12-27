@@ -1,146 +1,112 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
-from urllib.parse import quote_plus
-import gspread
-from google.oauth2.service_account import Credentials
+import requests
+import base64
+
 # ---------------- CONFIG ----------------
-st.set_page_config("Prasad Reality Vizag", "🏡", layout="wide")
-ADMIN_PASSWORD = "prasad@admin"   # change later
-PROPERTIES_SHEET = "properties_master"
-LEADS_SHEET = "leads_bookings"
-# ---------------- GOOGLE SHEETS ----------------
-scope = [
-   "https://spreadsheets.google.com/feeds",
-   "https://www.googleapis.com/auth/drive"
-]
-creds = Credentials.from_service_account_info(
-   st.secrets["gcp_service_account"],
-   scopes=scope
-)
-client = gspread.authorize(creds)
-sheet_props = client.open(PROPERTIES_SHEET).sheet1
-sheet_leads = client.open(LEADS_SHEET).sheet1
-def load_properties():
-   data = sheet_props.get_all_records()
-   return pd.DataFrame(data)
-def save_lead(row):
-   sheet_leads.append_row(row)
-# ---------------- SESSION ----------------
-if "admin" not in st.session_state:
-   st.session_state.admin = False
-if "revealed" not in st.session_state:
-   st.session_state.revealed = {}
+st.set_page_config("Prasad Realty Vizag", "🏡", layout="wide")
+
+GITHUB_REPO = "YOUR_USERNAME/YOUR_REPO"
+DATA_PATH = "data"
+PROPERTIES_FILE = "properties.csv"
+LEADS_FILE = "leads.csv"
+
+GITHUB_TOKEN = st.secrets["github_token"]
+
+HEADERS = {
+    "Authorization": f"token {GITHUB_TOKEN}",
+    "Accept": "application/vnd.github.v3+json"
+}
+
+# ---------------- GITHUB HELPERS ----------------
+def github_url(file):
+    return f"https://api.github.com/repos/{GITHUB_REPO}/contents/{DATA_PATH}/{file}"
+
+def read_csv_from_github(file):
+    r = requests.get(github_url(file), headers=HEADERS)
+    content = base64.b64decode(r.json()["content"])
+    return pd.read_csv(pd.compat.StringIO(content.decode()))
+
+def write_csv_to_github(df, file, message):
+    r = requests.get(github_url(file), headers=HEADERS)
+    sha = r.json()["sha"]
+
+    csv_data = df.to_csv(index=False)
+    encoded = base64.b64encode(csv_data.encode()).decode()
+
+    payload = {
+        "message": message,
+        "content": encoded,
+        "sha": sha
+    }
+    requests.put(github_url(file), headers=HEADERS, json=payload)
+
+# ---------------- DATA ----------------
+props = read_csv_from_github(PROPERTIES_FILE)
+props = props[props["is_active"] == True]
+
 # ---------------- HEADER ----------------
-st.title("🏡 Prasad Reality Vizag")
+st.title("🏡 Prasad Realty Vizag")
 st.caption("Explore properties • Watch reels • Book visits")
-# ---------------- ADMIN LOGIN ----------------
-with st.sidebar:
-   st.subheader("Admin Login")
-   pwd = st.text_input("Password", type="password")
-   if st.button("Login"):
-       if pwd == ADMIN_PASSWORD:
-           st.session_state.admin = True
-           st.success("Admin access granted")
-       else:
-           st.error("Wrong password")
-# ---------------- LOAD DATA ----------------
-df = load_properties()
-df = df[df["is_active"] == True]
+
 # ---------------- FILTERS ----------------
-st.sidebar.subheader("Filters")
-locality = st.sidebar.multiselect(
-   "Area",
-   df["locality"].unique(),
-   default=df["locality"].unique()
-)
-ptype = st.sidebar.multiselect(
-   "Type",
-   df["property_type"].unique(),
-   default=df["property_type"].unique()
-)
-df = df[df["locality"].isin(locality)]
-df = df[df["property_type"].isin(ptype)]
+with st.sidebar:
+    st.subheader("Filters")
+    area = st.multiselect("Area", props["locality"].unique(), default=props["locality"].unique())
+    category = st.multiselect("Type", props["property_category"].unique(), default=props["property_category"].unique())
+
+filtered = props[
+    (props["locality"].isin(area)) &
+    (props["property_category"].isin(category))
+]
+
 # ---------------- PROPERTY CARDS ----------------
 cols = st.columns(3)
-for i, row in df.iterrows():
-   with cols[i % 3]:
-       st.subheader(row["title"])
-       st.caption(f"{row['locality']} • {row['property_type']}")
-       st.write(f"📐 {row['size_sqft']} sqft")
-       st.write(row["highlights"])
-       # Reel
-       st.components.v1.html(
-           f"""
-<blockquote class="instagram-media" data-instgrm-permalink="{row['reel_url']}" data-instgrm-version="14"></blockquote>
-<script async src="https://www.instagram.com/embed.js"></script>
-           """,
-           height=450
-       )
-       pid = row["property_id"]
-       # Price reveal
-       if not st.session_state.revealed.get(pid):
-           if st.button("🔒 Reveal Price", key=f"price_{pid}"):
-               st.session_state.revealed[pid] = True
-               save_lead([
-                   datetime.now().strftime("%Y-%m-%d %H:%M"),
-                   "", "",
-                   "Price Reveal",
-                   pid, "", "", "", "",
-                   "Instagram",
-                   row["reel_url"],
-                   "New", ""
-               ])
-       else:
-           st.success(f"₹ {row['price_lakhs']} Lakhs")
-       # Booking
-       with st.expander("📅 Book Visit / Video Call"):
-           name = st.text_input("Name", key=f"name_{pid}")
-           phone = st.text_input("Phone", key=f"phone_{pid}")
-           btype = st.radio("Type", ["Video Call", "In-Person"], key=f"type_{pid}")
-           date = st.date_input(
-               "Date",
-               min_value=datetime.today(),
-               max_value=datetime.today() + timedelta(days=14),
-               key=f"date_{pid}"
-           )
-           slot = st.selectbox("Slot", ["10–11", "11–12", "12–1", "3–4", "4–5"], key=f"slot_{pid}")
-           if st.button("Confirm Booking", key=f"book_{pid}"):
-               save_lead([
-                   datetime.now().strftime("%Y-%m-%d %H:%M"),
-                   name, phone,
-                   "Booking",
-                   pid, btype,
-                   str(date), slot,
-                   "7/14",
-                   "Instagram",
-                   row["reel_url"],
-                   "Booked", ""
-               ])
-               st.success("Booking captured! We’ll contact you.")
-# ---------------- ADMIN PANEL ----------------
-if st.session_state.admin:
-   st.divider()
-   st.header("🛠 Admin Panel")
-   st.dataframe(load_properties(), use_container_width=True)
-   with st.form("add_property"):
-       st.subheader("Add Property")
-       new = [
-           st.text_input("property_id"),
-           st.text_input("title"),
-           st.text_input("locality"),
-           st.text_input("property_type"),
-           st.text_input("condition"),
-           st.number_input("bedrooms", 0),
-           st.number_input("bathrooms", 0),
-           st.number_input("size_sqft", 0),
-           st.number_input("price_lakhs", 0),
-           st.text_input("reel_url"),
-           st.text_area("highlights"),
-           st.selectbox("walkthrough_type", ["Video", "Visit", "Both"]),
-           True,
-           datetime.now().strftime("%Y-%m-%d")
-       ]
-       if st.form_submit_button("Add"):
-           sheet_props.append_row(new)
-           st.success("Property added")
+
+for i, row in filtered.iterrows():
+    with cols[i % 3]:
+        st.subheader(row["title"])
+        st.caption(f"{row['locality']} • {row['property_category']}")
+        st.write(f"📐 {row['size_value']} {row['size_unit']}")
+        st.write(row["highlights"])
+
+        st.components.v1.html(
+            f"""
+            <blockquote class="instagram-media" data-instgrm-permalink="{row['reel_url']}" data-instgrm-version="14"></blockquote>
+            <script async src="https://www.instagram.com/embed.js"></script>
+            """,
+            height=420
+        )
+
+        if st.button("🔒 Reveal Price", key=f"price_{row['property_id']}"):
+            leads = read_csv_from_github(LEADS_FILE)
+            leads.loc[len(leads)] = [
+                datetime.now(), "Price Reveal", row["property_id"],
+                "", "", "", "", "", "",
+                "Instagram", row["reel_url"], "New", ""
+            ]
+            write_csv_to_github(leads, LEADS_FILE, "Price reveal lead")
+            st.success(
+                f"💰 {row['price_value']} {row['price_unit']}"
+                if pd.notna(row["price_value"])
+                else "💰 Price on request"
+            )
+
+        with st.expander("📅 Book Visit / Video Call"):
+            name = st.text_input("Name", key=f"name_{i}")
+            phone = st.text_input("Phone", key=f"phone_{i}")
+            visit = st.radio("Type", ["Video Call", "In-Person"], key=f"visit_{i}")
+            date = st.date_input("Date", datetime.today(), key=f"date_{i}")
+            slot = st.selectbox("Slot", ["10–11", "11–12", "12–1", "3–4", "4–5"], key=f"slot_{i}")
+
+            if st.button("Confirm Booking", key=f"book_{i}"):
+                leads = read_csv_from_github(LEADS_FILE)
+                leads.loc[len(leads)] = [
+                    datetime.now(), "Booking", row["property_id"],
+                    name, phone, "Visit", visit,
+                    str(date), slot,
+                    "Instagram", row["reel_url"], "Booked", ""
+                ]
+                write_csv_to_github(leads, LEADS_FILE, "New booking")
+                st.success("Booking captured. We’ll contact you.")
